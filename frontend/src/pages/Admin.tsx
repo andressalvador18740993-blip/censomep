@@ -10,9 +10,10 @@ type Tab = "aprobaciones" | "militantes" | "usuarios" | "registrar";
 export default function Admin() {
   const role = getRole();
   const esAdmin = role === "admin";
+  const esAprueba = role === "admin" || role === "nacional";
   const me = pb.authStore.model as Record<string, any> | null;
 
-  const [tab, setTab] = useState<Tab>("aprobaciones");
+  const [tab, setTab] = useState<Tab>(esAprueba ? "aprobaciones" : "registrar");
   const [pendientes, setPendientes] = useState<Militante[]>([]);
   const [todos, setTodos] = useState<Militante[]>([]);
   const [staff, setStaff] = useState<User[]>([]);
@@ -123,6 +124,12 @@ export default function Admin() {
     cargar();
   }
 
+  async function reimprimirCarnet(id: string) {
+    await pb.collection("militantes").update(id, { carnet_impreso: false });
+    setMsg("Carnet habilitado para reimpresión por el militante.");
+    cargar();
+  }
+
   async function crearUsuario(e: FormEvent) {
     e.preventDefault();
     try {
@@ -188,14 +195,14 @@ export default function Admin() {
 
         {/* Tabs */}
         <div className="mb-4 flex gap-2">
-          <TabBtn active={tab === "aprobaciones"} onClick={() => setTab("aprobaciones")}>Aprobaciones ({pendientes.length})</TabBtn>
-          <TabBtn active={tab === "militantes"} onClick={() => setTab("militantes")}>Militantes ({todos.length})</TabBtn>
+          {esAprueba && <TabBtn active={tab === "aprobaciones"} onClick={() => setTab("aprobaciones")}>Aprobaciones ({pendientes.length})</TabBtn>}
+          {esAprueba && <TabBtn active={tab === "militantes"} onClick={() => setTab("militantes")}>Militantes ({todos.length})</TabBtn>}
           <TabBtn active={tab === "registrar"} onClick={() => setTab("registrar")}>Registrar militante</TabBtn>
           {esAdmin && <TabBtn active={tab === "usuarios"} onClick={() => setTab("usuarios")}>Usuarios</TabBtn>}
         </div>
 
         {/* APROBACIONES */}
-        {tab === "aprobaciones" && (
+        {tab === "aprobaciones" && esAprueba && (
           <div className="space-y-3">
             {pendientes.length === 0 && <p className="text-gray-500">No hay militantes pendientes de aprobación.</p>}
             {pendientes.map((m) => (
@@ -216,7 +223,7 @@ export default function Admin() {
         )}
 
         {/* MILITANTES (bloquear/desbloquear) */}
-        {tab === "militantes" && (
+        {tab === "militantes" && esAprueba && (
           <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
             <table className="w-full text-left text-sm">
               <thead className="bg-mep-purple text-mep-yellow">
@@ -224,7 +231,7 @@ export default function Admin() {
                   <th className="px-3 py-2">Militante</th>
                   <th className="px-3 py-2">Código</th>
                   <th className="px-3 py-2">Estado</th>
-                  <th className="px-3 py-2">Acción</th>
+                  <th className="px-3 py-2">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -237,11 +244,16 @@ export default function Admin() {
                     <td className="px-3 py-2 font-mono text-xs">{m.codigo || "—"}</td>
                     <td className="px-3 py-2">{badge(m.estado_registro)}</td>
                     <td className="px-3 py-2">
-                      {m.estado_registro === "bloqueado" ? (
-                        <button onClick={() => desbloquear(m.id)} className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Desbloquear</button>
-                      ) : (
-                        <button onClick={() => bloquear(m.id)} className="rounded bg-gray-600 px-2 py-1 text-xs text-white hover:bg-gray-700">Bloquear</button>
-                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {m.estado_registro === "bloqueado" ? (
+                          <button onClick={() => desbloquear(m.id)} className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Desbloquear</button>
+                        ) : (
+                          <button onClick={() => bloquear(m.id)} className="rounded bg-gray-600 px-2 py-1 text-xs text-white hover:bg-gray-700">Bloquear</button>
+                        )}
+                        {m.estado_registro === "aprobado" && m.carnet_generado && (
+                          <button onClick={() => reimprimirCarnet(m.id)} className="rounded bg-mep-purple px-2 py-1 text-xs text-mep-yellow hover:bg-mep-purple-dark">Reimprimir carnet</button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
