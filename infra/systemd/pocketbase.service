@@ -1,0 +1,13 @@
+[Unit]
+Description=PocketBase (Militante MEP)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/mep/pb
+ExecStart=/opt/mep/pb/pocketbase serve --http=127.0.0.1:8090
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
