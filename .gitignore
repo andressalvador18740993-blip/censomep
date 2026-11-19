@@ -1,0 +1,33 @@
+# Dependencias
+node_modules/
+dist/
+build/
+
+# SECRETOS — NUNCA subir a GitHub
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa*
+mep_id_rsa*
+
+# PocketBase
+pb/pb_data/
+pb_data/
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Build de TypeScript
+*.tsbuildinfo
+
+# Secretos y material de referencia (no subir)
+/despliegue/
+/logo/
+*.docx
+*.txt
