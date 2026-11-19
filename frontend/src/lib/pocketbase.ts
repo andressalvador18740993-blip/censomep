@@ -22,6 +22,12 @@ export function isAuthenticated(): boolean {
   return pb.authStore.isValid;
 }
 
+/** Página de inicio del militante: carnet si está aprobado, si no la planilla. */
+export function militantHome(): string {
+  const model = pb.authStore.model as Record<string, unknown> | null;
+  return model?.estado_registro === "aprobado" ? "/mi-carnet" : "/planilla";
+}
+
 /** Inicia sesión probando primero staff (`users`) y luego militante (`militantes`). */
 export async function login(email: string, password: string): Promise<Role> {
   try {
