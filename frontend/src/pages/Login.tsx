@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { login } from "../lib/pocketbase";
+import { login, militantHome } from "../lib/pocketbase";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -15,7 +15,7 @@ export default function Login() {
     setLoading(true);
     try {
       const role = await login(email, password);
-      navigate(role === "militante" ? "/planilla" : "/dashboard", { replace: true });
+      navigate(role === "militante" ? militantHome() : "/dashboard", { replace: true });
     } catch {
       setError("Credenciales incorrectas. Verifica tu correo y contraseña.");
     } finally {
