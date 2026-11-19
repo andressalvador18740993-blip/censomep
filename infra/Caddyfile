@@ -1,0 +1,12 @@
+# Reverse proxy (referencia). Ajusta los dominios reales.
+# PocketBase y el worker corren en localhost; Caddy expone TLS.
+
+api.mep.org.ve {
+    encode gzip
+    reverse_proxy 127.0.0.1:8090
+}
+
+worker.mep.org.ve {
+    encode gzip
+    reverse_proxy 127.0.0.1:8787
+}
