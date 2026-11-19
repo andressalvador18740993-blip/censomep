@@ -6,6 +6,7 @@ import { pb } from "../lib/pocketbase";
 export default function MiCarnet() {
   const me = pb.authStore.model as Record<string, any> | null;
   const [record, setRecord] = useState<Record<string, any> | null>(me);
+  const [descargando, setDescargando] = useState(false);
 
   useEffect(() => {
     if (me?.id) {
@@ -22,6 +23,21 @@ export default function MiCarnet() {
     : null;
   const estado = record?.expand?.estado?.nombre;
   const municipio = record?.expand?.municipio?.nombre;
+  const yaImpreso = Boolean(record?.carnet_impreso);
+
+  async function descargarCarnet() {
+    if (!me?.id || !carnetUrl) return;
+    setDescargando(true);
+    try {
+      await pb.collection("militantes").update(me.id, { carnet_impreso: true });
+      window.open(carnetUrl, "_blank");
+      setRecord((r) => (r ? { ...r, carnet_impreso: true } : r));
+    } catch {
+      /* ignore */
+    } finally {
+      setDescargando(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -30,7 +46,7 @@ export default function MiCarnet() {
         <h1 className="mb-4 text-xl font-bold text-mep-purple">Mi carnet</h1>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow">
-          <div className="mx-auto mb-3 h-16 w-16 rounded-full bg-mep-purple flex items-center justify-center text-mep-yellow font-black text-xl">
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-mep-purple text-xl font-black text-mep-yellow">
             MEP
           </div>
 
@@ -60,26 +76,32 @@ export default function MiCarnet() {
 
           {record?.estado_registro !== "aprobado" && (
             <p className="mb-4 text-xs text-gray-500">
-              Tu inscripción está pendiente de aprobación. Recibirás tu carnet por correo al ser aprobado.
+              Tu inscripción está pendiente de aprobación. Cuando sea aprobada podrás ver y descargar tu carnet aquí.
             </p>
           )}
 
-          {carnetUrl && (
+          {carnetUrl && !yaImpreso && (
             <>
               <iframe
                 src={carnetUrl}
                 title="Carnet"
                 className="mb-3 h-96 w-full rounded border border-gray-200 bg-white"
               />
-              <a
-                href={carnetUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mb-2 block w-full rounded-lg bg-mep-purple py-2 text-sm font-semibold text-mep-yellow hover:bg-mep-purple-dark"
+              <button
+                onClick={descargarCarnet}
+                disabled={descargando}
+                className="mb-2 block w-full rounded-lg bg-mep-purple py-2 text-sm font-semibold text-mep-yellow hover:bg-mep-purple-dark disabled:opacity-60"
               >
-                Descargar carnet (PDF)
-              </a>
+                {descargando ? "Preparando..." : "Descargar / Imprimir carnet (PDF)"}
+              </button>
+              <p className="mb-2 text-xs text-gray-400">Solo puedes descargarlo una vez.</p>
             </>
+          )}
+
+          {carnetUrl && yaImpreso && (
+            <p className="mb-3 rounded-lg bg-gray-100 p-3 text-sm text-gray-600">
+              Ya descargaste tu carnet. Si necesitas imprimirlo nuevamente, solicita una reimpresión al administrador o a un usuario nacional.
+            </p>
           )}
 
           <Link
