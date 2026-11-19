@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Header from "../components/Header";
+import PlanillaForm from "../components/PlanillaForm";
 import { getRole, pb } from "../lib/pocketbase";
+import { generarCodigo, planillaFields } from "../lib/planilla";
 import type { Estado, Militante, Municipio, User } from "../lib/types";
 
-type Tab = "aprobaciones" | "militantes" | "usuarios";
+type Tab = "aprobaciones" | "militantes" | "usuarios" | "registrar";
 
 export default function Admin() {
   const role = getRole();
@@ -17,6 +19,7 @@ export default function Admin() {
   const [estados, setEstados] = useState<Estado[]>([]);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [msg, setMsg] = useState("");
+  const [registroKey, setRegistroKey] = useState(0);
 
   const [nuevo, setNuevo] = useState({
     email: "",
@@ -143,6 +146,26 @@ export default function Admin() {
     }
   }
 
+  async function registrarMilitante(data: Record<string, any>) {
+    const codigo = generarCodigo(data.estadoCodigo, data.municipioCodigo);
+    await pb.collection("militantes").create({
+      email: data.email,
+      password: data.password,
+      passwordConfirm: data.password,
+      ...planillaFields(data),
+      codigo,
+      estado_registro: "pendiente",
+      tipo_registro: "inscripcion",
+      responsable_registro: me?.email || "",
+      version_censo: 1,
+      ultimo_recenso: new Date().toISOString().slice(0, 10),
+      recenso_pendiente: false
+    });
+    setMsg(`Militante registrado. Código: ${codigo}`);
+    setRegistroKey((k) => k + 1);
+    cargar();
+  }
+
   const estadoDe = (id: string) => estados.find((e) => e.id === id)?.nombre ?? "";
   const municipioDe = (id: string) => municipios.find((m) => m.id === id)?.nombre ?? "";
 
@@ -167,6 +190,7 @@ export default function Admin() {
         <div className="mb-4 flex gap-2">
           <TabBtn active={tab === "aprobaciones"} onClick={() => setTab("aprobaciones")}>Aprobaciones ({pendientes.length})</TabBtn>
           <TabBtn active={tab === "militantes"} onClick={() => setTab("militantes")}>Militantes ({todos.length})</TabBtn>
+          <TabBtn active={tab === "registrar"} onClick={() => setTab("registrar")}>Registrar militante</TabBtn>
           {esAdmin && <TabBtn active={tab === "usuarios"} onClick={() => setTab("usuarios")}>Usuarios</TabBtn>}
         </div>
 
@@ -224,6 +248,11 @@ export default function Admin() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* REGISTRAR MILITANTE */}
+        {tab === "registrar" && (
+          <PlanillaForm key={registroKey} mode="staff" onSubmit={registrarMilitante} />
         )}
 
         {/* USUARIOS (solo admin) */}
