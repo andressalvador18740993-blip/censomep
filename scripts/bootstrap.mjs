@@ -244,6 +244,7 @@ async function main() {
       { name: "carnet_pdf", type: "file", maxSelect: 1, maxSize: 10485760, mimeTypes: ["application/pdf"] },
       { name: "carnet_generado", type: "bool" },
       { name: "carnet_enviado", type: "bool" },
+      { name: "carnet_impreso", type: "bool" },
       { name: "fecha_envio", type: "date" },
       { name: "version_censo", type: "number", onlyInt: true },
       { name: "ultimo_recenso", type: "date" },
