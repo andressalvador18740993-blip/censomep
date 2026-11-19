@@ -1,0 +1,14 @@
+[Unit]
+Description=Militante MEP Worker (carnet + correo + cron)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/mep/worker
+ExecStart=/usr/bin/node /opt/mep/worker/src/index.js
+EnvironmentFile=/opt/mep/worker/.env
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
