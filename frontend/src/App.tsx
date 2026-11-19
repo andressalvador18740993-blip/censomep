@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import { getRole, isAuthenticated } from "./lib/pocketbase";
+import { getRole, isAuthenticated, militantHome } from "./lib/pocketbase";
 import type { Role } from "./lib/types";
 
 import Login from "./pages/Login";
@@ -17,7 +17,7 @@ function RequireAuth({ allowed, children }: { allowed?: Role[]; children: ReactN
   const role = getRole();
   if (allowed && role && !allowed.includes(role)) {
     // redirigir según rol
-    return <Navigate to={role === "militante" ? "/planilla" : "/dashboard"} replace />;
+    return <Navigate to={role === "militante" ? militantHome() : "/dashboard"} replace />;
   }
   return <>{children}</>;
 }
