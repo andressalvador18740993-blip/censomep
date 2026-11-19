@@ -54,6 +54,7 @@ export interface Militante {
   carnet_pdf?: string;
   carnet_generado: boolean;
   carnet_enviado: boolean;
+  carnet_impreso: boolean;
   fecha_envio?: string;
   version_censo: number;
   ultimo_recenso?: string;
