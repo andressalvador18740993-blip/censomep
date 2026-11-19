@@ -64,16 +64,14 @@ export default function Header() {
           <button className={navCls("/dashboard")} onClick={() => navigate("/dashboard")}>
             Dashboard
           </button>
-          {(role === "admin" || role === "nacional") && (
-            <button className={navCls("/admin")} onClick={() => navigate("/admin")}>
-              Panel admin
-              {pendientes > 0 && (
-                <span className="ml-1 rounded-full bg-mep-yellow px-1.5 text-xs font-bold text-mep-purple">
-                  {pendientes}
-                </span>
-              )}
-            </button>
-          )}
+          <button className={navCls("/admin")} onClick={() => navigate("/admin")}>
+            {role === "admin" || role === "nacional" ? "Panel admin" : "Registrar"}
+            {(role === "admin" || role === "nacional") && pendientes > 0 && (
+              <span className="ml-1 rounded-full bg-mep-yellow px-1.5 text-xs font-bold text-mep-purple">
+                {pendientes}
+              </span>
+            )}
+          </button>
           {(role === "admin" || role === "nacional") && (
             <button className={navCls("/conexiones")} onClick={() => navigate("/conexiones")}>
               Conexiones
