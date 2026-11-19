@@ -17,3 +17,38 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
+
+/* ===== Impresión en blanco y negro ===== */
+@media print {
+  header,
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  html,
+  body,
+  #root {
+    height: auto;
+    background: #ffffff !important;
+  }
+
+  * {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-color: #999999 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  svg path {
+    fill: #e0e0e0 !important;
+    stroke: #000000 !important;
+  }
+
+  a {
+    color: #000000 !important;
+    text-decoration: none !important;
+  }
+}
