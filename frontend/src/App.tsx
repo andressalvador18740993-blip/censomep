@@ -33,7 +33,7 @@ export default function App() {
 
       <Route path="/dashboard" element={<RequireAuth allowed={["admin", "nacional", "regional", "municipal"]}><Dashboard /></RequireAuth>} />
       <Route path="/conexiones" element={<RequireAuth allowed={["admin", "nacional"]}><Conexiones /></RequireAuth>} />
-      <Route path="/admin" element={<RequireAuth allowed={["admin", "nacional"]}><Admin /></RequireAuth>} />
+      <Route path="/admin" element={<RequireAuth allowed={["admin", "nacional", "regional", "municipal"]}><Admin /></RequireAuth>} />
 
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
