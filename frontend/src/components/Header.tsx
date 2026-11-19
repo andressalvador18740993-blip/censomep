@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getRole, logout, pb } from "../lib/pocketbase";
+import { getRole, logout, militantHome, pb } from "../lib/pocketbase";
 import { ROLE_LABELS } from "../lib/roles";
 
 export default function Header() {
@@ -39,7 +39,7 @@ export default function Header() {
     navigate("/login", { replace: true });
   }
 
-  const home = esMilitante ? "/planilla" : "/dashboard";
+  const home = esMilitante ? militantHome() : "/dashboard";
   const navCls = (path: string) =>
     `rounded px-3 py-1.5 text-sm font-medium ${
       location.pathname === path ? "bg-white/25 text-mep-yellow" : "text-white hover:bg-white/15"
