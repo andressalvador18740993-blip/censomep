@@ -218,6 +218,12 @@ export default function Dashboard() {
         {/* VISTA: MUNICIPIOS */}
         {vista === "municipios" && (
           <div className="space-y-2">
+            <button
+              onClick={() => { setVista("estados"); setSelEstado(null); }}
+              className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              ← Volver a estados
+            </button>
             {municipiosDelEstado.map((m) => {
               const total = porMunicipio.get(m.id) || 0;
               return (
@@ -236,8 +242,15 @@ export default function Dashboard() {
 
         {/* VISTA: MILITANTES */}
         {vista === "militantes" && (
-          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-            <table className="w-full text-left text-sm">
+          <div>
+            <button
+              onClick={() => { setVista("municipios"); setSelMunicipio(null); }}
+              className="mb-2 inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              ← Volver a municipios
+            </button>
+            <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+              <table className="w-full text-left text-sm">
               <thead className="bg-mep-purple text-mep-yellow">
                 <tr>
                   <th className="px-3 py-2">Nombre</th>
@@ -271,13 +284,21 @@ export default function Dashboard() {
               </tbody>
             </table>
           </div>
+          </div>
         )}
 
         {/* Modal detalle de militante */}
         {detalle && (
           <div className="fixed inset-0 flex items-center justify-center bg-black/50 p-4" onClick={() => setDetalle(null)}>
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-              <h2 className="mb-3 text-lg font-bold text-mep-purple">
+            <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setDetalle(null)}
+                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200"
+                aria-label="Cerrar"
+              >
+                ✕
+              </button>
+              <h2 className="mb-3 pr-8 text-lg font-bold text-mep-purple">
                 {detalle.nombres} {detalle.apellidos}
               </h2>
               <dl className="space-y-2 text-sm">
