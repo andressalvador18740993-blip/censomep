@@ -11,7 +11,8 @@ import {
   Icon,
   Modal,
   PageTitle,
-  Spinner
+  Spinner,
+  type IconName
 } from "../components/ui";
 import { getRole, pb } from "../lib/pocketbase";
 import type { Estado, Estructura, EstructuraNivel, Municipio } from "../lib/types";
@@ -125,22 +126,28 @@ export default function EstructuraPage() {
     [municipios, selEstado]
   );
 
+  // Solo se muestran como estructura "oficial" los aprobados.
+  const aprobados = useMemo(() => records.filter((r) => r.estado_registro === "aprobado"), [records]);
+  const porAprobar = useMemo(() => records.filter((r) => r.estado_registro !== "aprobado"), [records]);
+
   // CPR del estado seleccionado
   const cprRecords = useMemo(
-    () => records.filter((r) => r.nivel === "CPR" && r.estado === selEstado),
-    [records, selEstado]
+    () => aprobados.filter((r) => r.nivel === "CPR" && r.estado === selEstado),
+    [aprobados, selEstado]
   );
 
   // CPM del municipio seleccionado
   const cpmRecords = useMemo(
-    () => records.filter((r) => r.nivel === "CPM" && r.municipio === selMunicipio),
-    [records, selMunicipio]
+    () => aprobados.filter((r) => r.nivel === "CPM" && r.municipio === selMunicipio),
+    [aprobados, selMunicipio]
   );
 
   const esMunicipal = role === "municipal";
 
   function puedeEditar(r: Estructura): boolean {
     if (esAdmin) return true;
+    const esMio = r.creado_por === me?.id;
+    if (!esMio || r.estado_registro !== "pendiente") return false;
     if (role === "regional") return r.estado === myEstadoId;
     if (role === "municipal") return r.nivel === "CPM" && r.municipio === myMunicipioId;
     return false;
@@ -219,8 +226,16 @@ export default function EstructuraPage() {
         setMsg("Cargo actualizado correctamente.");
       } else {
         payload.creado_por = me?.id ?? null;
+        if (esAdmin) {
+          // El admin/nacional aprueba al registrar directamente.
+          payload.estado_registro = "aprobado";
+          payload.aprobado_por = me?.id ?? null;
+          payload.fecha_aprobacion = new Date().toISOString();
+        } else {
+          payload.estado_registro = "pendiente";
+        }
         await pb.collection("estructura").create(payload);
-        setMsg("Cargo agregado a la estructura.");
+        setMsg(esAdmin ? "Cargo agregado a la estructura." : "Cargo enviado para aprobación.");
       }
       setModal(null);
       cargar();
@@ -228,6 +243,35 @@ export default function EstructuraPage() {
       setError(e?.message || "No se pudo guardar el cargo.");
     } finally {
       setGuardando(false);
+    }
+  }
+
+  async function aprobar(r: Estructura) {
+    try {
+      await pb.collection("estructura").update(r.id, {
+        estado_registro: "aprobado",
+        aprobado_por: me?.id ?? null,
+        fecha_aprobacion: new Date().toISOString(),
+        motivo_rechazo: ""
+      });
+      setMsg("Cargo aprobado.");
+      cargar();
+    } catch (e: any) {
+      setMsg(e?.message || "No se pudo aprobar.");
+    }
+  }
+
+  async function rechazar(r: Estructura) {
+    const motivo = window.prompt("Motivo del rechazo:") || "";
+    try {
+      await pb.collection("estructura").update(r.id, {
+        estado_registro: "rechazado",
+        motivo_rechazo: motivo
+      });
+      setMsg("Cargo rechazado.");
+      cargar();
+    } catch (e: any) {
+      setMsg(e?.message || "No se pudo rechazar.");
     }
   }
 
@@ -254,6 +298,7 @@ export default function EstructuraPage() {
       Teléfono: r.telefono || "",
       Email: r.email || "",
       Activo: r.activo !== false ? "Sí" : "No",
+      "Estatus": r.estado_registro || "pendiente",
       "Fecha de designación": r.fecha_designacion || ""
     }));
     const ws = XLSX.utils.json_to_sheet(filas);
@@ -262,8 +307,9 @@ export default function EstructuraPage() {
     XLSX.writeFile(wb, "estructura-partido.xlsx");
   }
 
-  const totalCPR = records.filter((r) => r.nivel === "CPR").length;
-  const totalCPM = records.filter((r) => r.nivel === "CPM").length;
+  const totalCPR = aprobados.filter((r) => r.nivel === "CPR").length;
+  const totalCPM = aprobados.filter((r) => r.nivel === "CPM").length;
+  const totalPendientes = records.filter((r) => r.estado_registro === "pendiente").length;
 
   return (
     <div className="min-h-screen pb-12">
@@ -299,8 +345,50 @@ export default function EstructuraPage() {
         <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
           <Resumen label="Cargos CPR" value={totalCPR} icon="shield" />
           <Resumen label="Cargos CPM" value={totalCPM} icon="users" />
-          <Resumen label="Total" value={records.length} icon="network" />
+          <Resumen label="Pendientes" value={totalPendientes} icon="clock" />
         </div>
+
+        {/* Pendientes de aprobación (admin/nacional) */}
+        {esAdmin && porAprobar.length > 0 && (
+          <Card className="mb-5 overflow-hidden">
+            <CardHeader
+              title="Pendientes de aprobación"
+              subtitle="Revisa y aprueba los cargos propuestos por regionales y municipales"
+              icon="clock"
+            />
+            <ul className="divide-y divide-gray-100">
+              {porAprobar.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-gray-800">
+                      {r.cargo} <span className="text-xs font-medium text-gray-400">· {r.nivel}</span>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {r.nombres} {r.apellidos} · {r.nivel === "CPR" ? nombreEstado(r.estado) : nombreMunicipio(r.municipio || "")}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <EstadoBadge r={r} />
+                    {r.estado_registro === "pendiente" ? (
+                      <>
+                        <Button size="sm" variant="success" icon="check" onClick={() => aprobar(r)}>
+                          Aprobar
+                        </Button>
+                        <Button size="sm" variant="danger" icon="x" onClick={() => rechazar(r)}>
+                          Rechazar
+                        </Button>
+                      </>
+                    ) : (
+                      <Button size="sm" variant="ghost" icon="x" onClick={() => eliminar(r)}>
+                        Eliminar
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
 
         {/* Selector de seccional */}
         {!esMunicipal && (
@@ -343,11 +431,7 @@ export default function EstructuraPage() {
                   subtitle="Comando Político Regional"
                   icon="shield"
                   right={
-                    <Button
-                      size="sm"
-                      icon="plus"
-                      onClick={() => abrirCrear("CPR")}
-                    >
+                    <Button size="sm" icon="plus" onClick={() => abrirCrear("CPR")}>
                       Agregar cargo
                     </Button>
                   }
@@ -359,7 +443,7 @@ export default function EstructuraPage() {
                   puedeEditar={puedeEditar}
                   onEditar={abrirEditar}
                   onEliminar={eliminar}
-                  vacio="Aún no hay cargos registrados en este CPR."
+                  vacio="Aún no hay cargos aprobados en este CPR."
                 />
               </Card>
             )}
@@ -385,12 +469,7 @@ export default function EstructuraPage() {
                           </option>
                         ))}
                       </select>
-                      <Button
-                        size="sm"
-                        icon="plus"
-                        onClick={() => abrirCrear("CPM")}
-                        disabled={!selMunicipio}
-                      >
+                      <Button size="sm" icon="plus" onClick={() => abrirCrear("CPM")} disabled={!selMunicipio}>
                         Agregar cargo
                       </Button>
                     </div>
@@ -408,7 +487,7 @@ export default function EstructuraPage() {
                     puedeEditar={puedeEditar}
                     onEditar={abrirEditar}
                     onEliminar={eliminar}
-                    vacio={`Aún no hay cargos registrados en el CPM de ${nombreMunicipio(selMunicipio)}.`}
+                    vacio={`Aún no hay cargos aprobados en el CPM de ${nombreMunicipio(selMunicipio)}.`}
                   />
                 )}
               </Card>
@@ -428,13 +507,13 @@ export default function EstructuraPage() {
                   }
                 />
                 <TablaCargos
-                  items={records.filter((r) => r.nivel === "CPM" && r.municipio === myMunicipioId)}
+                  items={aprobados.filter((r) => r.nivel === "CPM" && r.municipio === myMunicipioId)}
                   nombreEstado={nombreEstado}
                   nombreMunicipio={nombreMunicipio}
                   puedeEditar={puedeEditar}
                   onEditar={abrirEditar}
                   onEliminar={eliminar}
-                  vacio="Aún no hay cargos registrados en tu CPM."
+                  vacio="Aún no hay cargos aprobados en tu CPM."
                 />
               </Card>
             )}
@@ -448,6 +527,7 @@ export default function EstructuraPage() {
           </h2>
           <p className="mb-4 text-xs text-gray-500">
             {modal?.nivel === "CPR" ? "Comando Político Regional" : "Comando Político Municipal"}
+            {!esAdmin && modal?.modo === "crear" ? " · quedará pendiente de aprobación" : ""}
           </p>
 
           {error && (
@@ -548,7 +628,7 @@ export default function EstructuraPage() {
   );
 }
 
-function Resumen({ label, value, icon }: { label: string; value: number; icon: "shield" | "users" | "network" }) {
+function Resumen({ label, value, icon }: { label: string; value: number; icon: IconName }) {
   return (
     <Card className="p-4">
       <div className="flex items-center gap-3">
@@ -571,6 +651,12 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </label>
   );
+}
+
+function EstadoBadge({ r }: { r: Estructura }) {
+  if (r.estado_registro === "aprobado") return <Badge tone="green" dot>Aprobado</Badge>;
+  if (r.estado_registro === "rechazado") return <Badge tone="red" dot>Rechazado</Badge>;
+  return <Badge tone="yellow" dot>Pendiente</Badge>;
 }
 
 function TablaCargos({
@@ -633,9 +719,10 @@ function TablaCargos({
                 {r.nivel === "CPR" ? nombreEstado(r.estado) : nombreMunicipio(r.municipio || "")}
               </td>
               <td className="td">
-                <Badge tone={r.activo !== false ? "green" : "gray"} dot>
-                  {r.activo !== false ? "Activo" : "Inactivo"}
-                </Badge>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <EstadoBadge r={r} />
+                  {r.activo === false && <Badge tone="gray">Inactivo</Badge>}
+                </div>
               </td>
               <td className="td">
                 {puedeEditar(r) ? (
