@@ -50,6 +50,7 @@ export interface Militante {
   estado_registro: EstadoRegistro;
   aprobado_por?: string;
   fecha_aprobacion?: string;
+  fecha_pendiente?: string;
   motivo_rechazo?: string;
   carnet_pdf?: string;
   carnet_generado: boolean;
@@ -100,6 +101,7 @@ export interface Estructura {
   estado_registro: EstructuraEstado;
   aprobado_por?: string;
   fecha_aprobacion?: string;
+  fecha_pendiente?: string;
   motivo_rechazo?: string;
   created: string;
   updated: string;
