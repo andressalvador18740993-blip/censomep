@@ -78,3 +78,23 @@ export interface Conexion {
   evento: "login" | "logout" | "sesion_activa";
   created: string;
 }
+
+export type EstructuraNivel = "CPR" | "CPM";
+
+export interface Estructura {
+  id: string;
+  nivel: EstructuraNivel;
+  estado: string;
+  municipio?: string;
+  cargo: string;
+  nombres: string;
+  apellidos: string;
+  cedula?: string;
+  telefono?: string;
+  email?: string;
+  activo: boolean;
+  fecha_designacion?: string;
+  creado_por?: string;
+  created: string;
+  updated: string;
+}
