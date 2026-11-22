@@ -330,8 +330,11 @@ async function main() {
     deleteRule: null,
   });
 
-  // 8) estructura (cargos directivos CPR / CPM)
-  await upsertCollection("estructura", {
+  // 8) estructura (cargos directivos CPR / CPM) — con aprobación por admin/nacional
+  const ESTRUCTURA_LIST_RULE = '@request.auth.role = "admin" || @request.auth.role = "nacional" || (@request.auth.role = "regional" && ((estado = @request.auth.estado && estado_registro = "aprobado") || creado_por = @request.auth.id)) || (@request.auth.role = "municipal" && ((nivel = "CPM" && municipio = @request.auth.municipio && estado_registro = "aprobado") || creado_por = @request.auth.id))';
+  const ESTRUCTURA_WRITE_RULE = '@request.auth.role = "admin" || @request.auth.role = "nacional" || (@request.auth.role = "regional" && creado_por = @request.auth.id && estado = @request.auth.estado && estado_registro = "pendiente") || (@request.auth.role = "municipal" && creado_por = @request.auth.id && nivel = "CPM" && municipio = @request.auth.municipio && estado_registro = "pendiente")';
+
+  const estructura = await upsertCollection("estructura", {
     name: "estructura",
     type: "base",
     fields: [
@@ -362,13 +365,26 @@ async function main() {
       { name: "activo", type: "bool" },
       { name: "fecha_designacion", type: "date" },
       { name: "creado_por", type: "relation", collectionId: users.id, maxSelect: 1 },
+      { name: "estado_registro", type: "select", maxSelect: 1, values: ["pendiente", "aprobado", "rechazado"] },
+      { name: "aprobado_por", type: "relation", collectionId: users.id, maxSelect: 1 },
+      { name: "fecha_aprobacion", type: "date" },
+      { name: "motivo_rechazo", type: "text", max: 255 },
       ...autodates(),
     ],
-    listRule: '@request.auth.role = "admin" || @request.auth.role = "nacional" || (@request.auth.role = "regional" && estado = @request.auth.estado) || (@request.auth.role = "municipal" && nivel = "CPM" && municipio = @request.auth.municipio)',
-    viewRule: '@request.auth.role = "admin" || @request.auth.role = "nacional" || (@request.auth.role = "regional" && estado = @request.auth.estado) || (@request.auth.role = "municipal" && nivel = "CPM" && municipio = @request.auth.municipio)',
+    listRule: ESTRUCTURA_LIST_RULE,
+    viewRule: ESTRUCTURA_LIST_RULE,
     createRule: '@request.auth.role = "admin" || @request.auth.role = "nacional" || @request.auth.role = "regional" || @request.auth.role = "municipal"',
-    updateRule: '@request.auth.role = "admin" || @request.auth.role = "nacional" || (@request.auth.role = "regional" && estado = @request.auth.estado) || (@request.auth.role = "municipal" && nivel = "CPM" && municipio = @request.auth.municipio)',
-    deleteRule: '@request.auth.role = "admin" || @request.auth.role = "nacional" || (@request.auth.role = "regional" && estado = @request.auth.estado) || (@request.auth.role = "municipal" && nivel = "CPM" && municipio = @request.auth.municipio)',
+    updateRule: ESTRUCTURA_WRITE_RULE,
+    deleteRule: ESTRUCTURA_WRITE_RULE,
+  });
+
+  // Forzar reglas (upsertCollection no actualiza reglas si la colección ya existe)
+  await api(`/api/collections/${estructura.id}`, "PATCH", {
+    listRule: ESTRUCTURA_LIST_RULE,
+    viewRule: ESTRUCTURA_LIST_RULE,
+    createRule: '@request.auth.role = "admin" || @request.auth.role = "nacional" || @request.auth.role = "regional" || @request.auth.role = "municipal"',
+    updateRule: ESTRUCTURA_WRITE_RULE,
+    deleteRule: ESTRUCTURA_WRITE_RULE,
   });
 
   // Sembrar catálogos y crear admin
