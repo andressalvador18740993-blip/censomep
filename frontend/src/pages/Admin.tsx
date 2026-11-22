@@ -5,9 +5,9 @@ import { getRole, pb } from "../lib/pocketbase";
 import { generarCodigo, planillaFields } from "../lib/planilla";
 import { generarYGuardarCarnet } from "../lib/carnet";
 import { esExpirado, textoPendiente } from "../lib/fechas";
-import type { Estado, Militante, Municipio, User } from "../lib/types";
+import type { Estado, Estructura, Militante, Municipio, User } from "../lib/types";
 
-type Tab = "aprobaciones" | "militantes" | "usuarios" | "registrar";
+type Tab = "aprobaciones" | "militantes" | "estructura" | "usuarios" | "registrar";
 
 export default function Admin() {
   const role = getRole();
@@ -24,6 +24,8 @@ export default function Admin() {
   const [msg, setMsg] = useState("");
   const [registroKey, setRegistroKey] = useState(0);
   const [procesando, setProcesando] = useState<string | null>(null);
+  const [estrucPendientes, setEstrucPendientes] = useState<Estructura[]>([]);
+  const [detalleEstructura, setDetalleEstructura] = useState<Estructura | null>(null);
 
   const [nuevo, setNuevo] = useState({
     email: "",
@@ -47,6 +49,15 @@ export default function Admin() {
       setPendientes([]);
       setTodos([]);
     }
+    if (esAprueba) {
+      try {
+        setEstrucPendientes(
+          await pb.collection("estructura").getFullList<Estructura>({ filter: 'estado_registro != "aprobado"', sort: "created" })
+        );
+      } catch {
+        setEstrucPendientes([]);
+      }
+    }
     if (esAdmin) {
       try {
         setStaff(await pb.collection("users").getFullList<User>({ sort: "role" }));
@@ -54,7 +65,7 @@ export default function Admin() {
         setStaff([]);
       }
     }
-  }, [esAdmin]);
+  }, [esAdmin, esAprueba]);
 
   useEffect(() => {
     cargar();
@@ -71,6 +82,17 @@ export default function Admin() {
       });
     return () => unsub?.();
   }, [cargar]);
+
+  useEffect(() => {
+    if (!esAprueba) return;
+    let unsub: (() => void) | null = null;
+    pb.collection("estructura")
+      .subscribe("*", () => cargar())
+      .then((fn) => {
+        unsub = fn;
+      });
+    return () => unsub?.();
+  }, [cargar, esAprueba]);
 
   /** Sube el carnet PDF (generado en el navegador) y lo marca como generado. */
   async function subirCarnet(m: Militante) {
@@ -168,6 +190,43 @@ export default function Admin() {
     cargar();
   }
 
+  async function aprobarEstructura(r: Estructura) {
+    try {
+      await pb.collection("estructura").update(r.id, {
+        estado_registro: "aprobado",
+        aprobado_por: me?.id ?? null,
+        fecha_aprobacion: new Date().toISOString(),
+        motivo_rechazo: ""
+      });
+      setMsg(`Cargo "${r.cargo}" aprobado.`);
+      cargar();
+    } catch (e: any) {
+      setMsg(e?.message || "No se pudo aprobar el cargo.");
+    }
+  }
+
+  async function rechazarEstructura(r: Estructura) {
+    const motivo = window.prompt("Motivo del rechazo:") || "";
+    try {
+      await pb.collection("estructura").update(r.id, { estado_registro: "rechazado", motivo_rechazo: motivo });
+      setMsg("Cargo rechazado.");
+      cargar();
+    } catch (e: any) {
+      setMsg(e?.message || "No se pudo rechazar el cargo.");
+    }
+  }
+
+  async function eliminarEstructura(r: Estructura) {
+    if (!window.confirm(`¿Eliminar el cargo "${r.cargo}" de ${r.nombres} ${r.apellidos}?`)) return;
+    try {
+      await pb.collection("estructura").delete(r.id);
+      setMsg("Cargo eliminado.");
+      cargar();
+    } catch (e: any) {
+      setMsg(e?.message || "No se pudo eliminar el cargo.");
+    }
+  }
+
   async function crearUsuario(e: FormEvent) {
     e.preventDefault();
     try {
@@ -236,6 +295,7 @@ export default function Admin() {
         <div className="mb-4 flex gap-2">
           {esAprueba && <TabBtn active={tab === "aprobaciones"} onClick={() => setTab("aprobaciones")}>Aprobaciones ({pendientes.length})</TabBtn>}
           {esAprueba && <TabBtn active={tab === "militantes"} onClick={() => setTab("militantes")}>Militantes ({todos.length})</TabBtn>}
+          {esAprueba && <TabBtn active={tab === "estructura"} onClick={() => setTab("estructura")}>Estructura ({estrucPendientes.filter((r) => r.estado_registro === "pendiente").length})</TabBtn>}
           <TabBtn active={tab === "registrar"} onClick={() => setTab("registrar")}>Registrar militante</TabBtn>
           {esAdmin && <TabBtn active={tab === "usuarios"} onClick={() => setTab("usuarios")}>Usuarios</TabBtn>}
         </div>
@@ -316,6 +376,49 @@ export default function Admin() {
           </div>
         )}
 
+        {/* ESTRUCTURA (aprobaciones CPR/CPM) */}
+        {tab === "estructura" && esAprueba && (
+          <div className="space-y-3">
+            {estrucPendientes.length === 0 && <p className="text-gray-500">No hay cargos de estructura pendientes de aprobación.</p>}
+            {estrucPendientes.map((r) => {
+              const expirado = r.estado_registro === "pendiente" && esExpirado(r.fecha_pendiente || r.created);
+              return (
+                <div key={r.id} className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 ${expirado ? "border-orange-300 bg-orange-50/60" : "border-gray-200 bg-white"}`}>
+                  <button onClick={() => setDetalleEstructura(r)} className="min-w-0 flex-1 text-left">
+                    <div className="font-medium">
+                      {r.cargo} <span className="text-xs font-normal text-gray-400">· {r.nivel}</span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {r.nombres} {r.apellidos} · {r.nivel === "CPR" ? estadoDe(r.estado) : municipioDe(r.municipio || "")}
+                    </div>
+                    <div className={`mt-1 text-xs font-medium ${expirado ? "text-orange-600" : r.estado_registro === "rechazado" ? "text-red-500" : "text-gray-400"}`}>
+                      {r.estado_registro === "pendiente" ? (
+                        <>
+                          {textoPendiente(r.fecha_pendiente || r.created)}
+                          {expirado && <span className="ml-2 rounded bg-orange-100 px-1.5 py-0.5 font-semibold text-orange-700">Expirado (más de 30 días)</span>}
+                        </>
+                      ) : (
+                        "Rechazado"
+                      )}
+                    </div>
+                  </button>
+                  <div className="flex gap-2">
+                    {r.estado_registro === "pendiente" ? (
+                      <>
+                        <button onClick={() => aprobarEstructura(r)} disabled={expirado} className="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">Aprobar</button>
+                        <button onClick={() => rechazarEstructura(r)} className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700">Rechazar</button>
+                      </>
+                    ) : (
+                      <button onClick={() => eliminarEstructura(r)} className="rounded-lg bg-gray-600 px-3 py-1.5 text-sm text-white hover:bg-gray-700">Eliminar</button>
+                    )}
+                    <button onClick={() => setDetalleEstructura(r)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">Ver</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* REGISTRAR MILITANTE */}
         {tab === "registrar" && (
           <PlanillaForm key={registroKey} mode="staff" onSubmit={registrarMilitante} />
@@ -364,6 +467,47 @@ export default function Admin() {
                     <span className="rounded bg-mep-purple/10 px-2 py-0.5 text-xs font-medium capitalize text-mep-purple">{u.role}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal detalle de cargo de estructura */}
+        {detalleEstructura && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setDetalleEstructura(null)}>
+            <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setDetalleEstructura(null)}
+                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200"
+                aria-label="Cerrar"
+              >
+                ✕
+              </button>
+              <h2 className="mb-1 pr-8 text-lg font-bold text-mep-purple">
+                {detalleEstructura.cargo} <span className="text-sm font-normal text-gray-400">· {detalleEstructura.nivel}</span>
+              </h2>
+              <p className="mb-4 text-xs text-gray-500">
+                {detalleEstructura.nivel === "CPR" ? "Comando Político Regional" : "Comando Político Municipal"}
+              </p>
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between"><dt className="text-gray-500">Nombre</dt><dd>{detalleEstructura.nombres} {detalleEstructura.apellidos}</dd></div>
+                <div className="flex justify-between"><dt className="text-gray-500">C.I.</dt><dd>{detalleEstructura.cedula || "—"}</dd></div>
+                <div className="flex justify-between"><dt className="text-gray-500">Teléfono</dt><dd>{detalleEstructura.telefono || "—"}</dd></div>
+                <div className="flex justify-between"><dt className="text-gray-500">Correo</dt><dd>{detalleEstructura.email || "—"}</dd></div>
+                <div className="flex justify-between"><dt className="text-gray-500">Estado</dt><dd>{estadoDe(detalleEstructura.estado)}</dd></div>
+                {detalleEstructura.nivel === "CPM" && <div className="flex justify-between"><dt className="text-gray-500">Municipio</dt><dd>{municipioDe(detalleEstructura.municipio || "")}</dd></div>}
+                <div className="flex justify-between"><dt className="text-gray-500">Estatus</dt><dd className="capitalize">{detalleEstructura.estado_registro}</dd></div>
+                {detalleEstructura.fecha_designacion && <div className="flex justify-between"><dt className="text-gray-500">Designación</dt><dd>{new Date(detalleEstructura.fecha_designacion).toLocaleDateString("es-VE")}</dd></div>}
+              </dl>
+              <div className="mt-4 flex justify-end gap-2">
+                {detalleEstructura.estado_registro === "pendiente" ? (
+                  <>
+                    <button onClick={() => { rechazarEstructura(detalleEstructura); setDetalleEstructura(null); }} className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700">Rechazar</button>
+                    <button onClick={() => { aprobarEstructura(detalleEstructura); setDetalleEstructura(null); }} disabled={esExpirado(detalleEstructura.fecha_pendiente || detalleEstructura.created)} className="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700 disabled:opacity-50">Aprobar</button>
+                  </>
+                ) : (
+                  <button onClick={() => setDetalleEstructura(null)} className="rounded-lg bg-mep-purple px-3 py-1.5 text-sm text-mep-yellow hover:bg-mep-purple-dark">Cerrar</button>
+                )}
               </div>
             </div>
           </div>
