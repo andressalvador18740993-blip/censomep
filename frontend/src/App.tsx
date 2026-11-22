@@ -10,6 +10,7 @@ import MiCarnet from "./pages/MiCarnet";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import Conexiones from "./pages/Conexiones";
+import Estructura from "./pages/Estructura";
 
 /** Protege una ruta exigiendo autenticación y (opcionalmente) roles permitidos. */
 function RequireAuth({ allowed, children }: { allowed?: Role[]; children: ReactNode }) {
@@ -34,6 +35,7 @@ export default function App() {
       <Route path="/dashboard" element={<RequireAuth allowed={["admin", "nacional", "regional", "municipal"]}><Dashboard /></RequireAuth>} />
       <Route path="/conexiones" element={<RequireAuth allowed={["admin", "nacional"]}><Conexiones /></RequireAuth>} />
       <Route path="/admin" element={<RequireAuth allowed={["admin", "nacional", "regional", "municipal"]}><Admin /></RequireAuth>} />
+      <Route path="/estructura" element={<RequireAuth allowed={["admin", "nacional", "regional", "municipal"]}><Estructura /></RequireAuth>} />
 
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
