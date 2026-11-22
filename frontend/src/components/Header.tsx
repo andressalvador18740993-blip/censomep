@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getRole, logout, militantHome, pb } from "../lib/pocketbase";
 import { ROLE_LABELS } from "../lib/roles";
+import { Avatar, Icon, type IconName } from "./ui";
 
 export default function Header() {
   const navigate = useNavigate();
@@ -40,53 +41,82 @@ export default function Header() {
   }
 
   const home = esMilitante ? militantHome() : "/dashboard";
-  const navCls = (path: string) =>
-    `rounded px-3 py-1.5 text-sm font-medium ${
-      location.pathname === path ? "bg-white/25 text-mep-yellow" : "text-white hover:bg-white/15"
-    }`;
+  const esAprueba = role === "admin" || role === "nacional";
+
+  const navItems: { path: string; label: string; icon: IconName; badge?: number }[] = [];
+  if (!esMilitante) {
+    navItems.push(
+      { path: "/dashboard", label: "Dashboard", icon: "grid" },
+      { path: "/estructura", label: "Estructura", icon: "network" },
+      { path: "/admin", label: esAprueba ? "Panel" : "Registrar", icon: esAprueba ? "shield" : "userPlus", badge: esAprueba ? pendientes : 0 },
+      ...(esAprueba ? [{ path: "/conexiones", label: "Conexiones", icon: "wifi" as IconName }] : [])
+    );
+  } else {
+    navItems.push(
+      { path: "/mi-carnet", label: "Mi carnet", icon: "idCard" },
+      { path: "/planilla", label: "Mi planilla", icon: "fileText" }
+    );
+  }
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-2 bg-mep-purple px-4 py-2 text-white">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => navigate(home)}
-          title="Inicio"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-lg hover:bg-white/25"
-        >
-          🏠
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-brand-gradient bg-brand-radial text-white shadow-soft no-print">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+        {/* Marca */}
+        <button onClick={() => navigate(home)} className="group flex items-center gap-2.5" title="Inicio">
+          <span className="flex h-9 items-center justify-center rounded-xl bg-white px-2 shadow-sm transition group-hover:shadow-md">
+            <img src="/logo.svg" alt="MEP" className="h-6 w-auto" />
+          </span>
+          <span className="hidden leading-tight sm:block">
+            <span className="block text-sm font-extrabold tracking-tight">Militante MEP</span>
+            <span className="block text-[0.68rem] font-medium text-white/60">Censo y carnetización</span>
+          </span>
         </button>
-        <img src="/logo.svg" alt="MEP" className="h-9" />
-        <span className="text-sm font-semibold">Militante MEP</span>
-      </div>
 
-      {!esMilitante && (
-        <nav className="flex items-center gap-1">
-          <button className={navCls("/dashboard")} onClick={() => navigate("/dashboard")}>
-            Dashboard
-          </button>
-          <button className={navCls("/admin")} onClick={() => navigate("/admin")}>
-            {role === "admin" || role === "nacional" ? "Panel admin" : "Registrar"}
-            {(role === "admin" || role === "nacional") && pendientes > 0 && (
-              <span className="ml-1 rounded-full bg-mep-yellow px-1.5 text-xs font-bold text-mep-purple">
-                {pendientes}
-              </span>
-            )}
-          </button>
-          {(role === "admin" || role === "nacional") && (
-            <button className={navCls("/conexiones")} onClick={() => navigate("/conexiones")}>
-              Conexiones
-            </button>
-          )}
+        {/* Navegación */}
+        <nav className="order-3 flex w-full items-center gap-1 overflow-x-auto pb-0.5 sm:order-none sm:w-auto sm:pb-0">
+          {navItems.map((item) => {
+            const active = location.pathname === item.path;
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={`group inline-flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[0.82rem] font-semibold transition ${
+                  active ? "bg-white/15 text-mep-yellow shadow-inner" : "text-white/75 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <Icon name={item.icon} className="h-4 w-4" />
+                {item.label}
+                {!!item.badge && item.badge > 0 && (
+                  <span className="ml-0.5 rounded-full bg-mep-yellow px-1.5 py-px text-[0.65rem] font-extrabold leading-tight text-mep-purple-deep">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </nav>
-      )}
 
-      <div className="flex items-center gap-3 text-sm">
-        <span className="text-mep-yellow">
-          {nombre || model?.email} {role ? `· ${ROLE_LABELS[role]}` : ""}
-        </span>
-        <button onClick={cerrar} className="rounded bg-white/20 px-3 py-1 hover:bg-white/30">
-          Salir
-        </button>
+        {/* Usuario */}
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-2 rounded-xl bg-white/10 py-1 pl-1 pr-2.5 ring-1 ring-inset ring-white/10">
+            <Avatar nombre={nombre || model?.email} size="sm" />
+            <div className="hidden leading-tight md:block">
+              <p className="max-w-[13rem] truncate text-[0.8rem] font-semibold text-white">{nombre || model?.email}</p>
+              <p className="text-[0.68rem] font-medium text-mep-yellow/90">
+                {role ? ROLE_LABELS[role] : "Invitado"}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={cerrar}
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 px-2.5 py-2 text-[0.8rem] font-semibold text-white/85 transition hover:border-white/30 hover:bg-white/10 hover:text-white"
+          >
+            <Icon name="logout" className="h-4 w-4" />
+            <span className="hidden sm:inline">Salir</span>
+          </button>
+        </div>
       </div>
     </header>
   );
