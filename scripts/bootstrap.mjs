@@ -330,6 +330,47 @@ async function main() {
     deleteRule: null,
   });
 
+  // 8) estructura (cargos directivos CPR / CPM)
+  await upsertCollection("estructura", {
+    name: "estructura",
+    type: "base",
+    fields: [
+      { name: "nivel", type: "select", required: true, maxSelect: 1, values: ["CPR", "CPM"] },
+      { name: "estado", type: "relation", required: true, collectionId: estados.id, maxSelect: 1 },
+      { name: "municipio", type: "relation", collectionId: municipios.id, maxSelect: 1 },
+      { name: "cargo", type: "select", required: true, maxSelect: 1, values: [
+        "Coordinador/a",
+        "Organización",
+        "Finanzas",
+        "Formación",
+        "Comunicación y Propaganda",
+        "Electoral",
+        "Juventud",
+        "Mujer",
+        "Profesionales y Técnicos",
+        "Sindical",
+        "Educadores",
+        "Movimientos Sociales",
+        "Asuntos Indígenas",
+        "Derechos Humanos"
+      ] },
+      { name: "nombres", type: "text", required: true, max: 120 },
+      { name: "apellidos", type: "text", required: true, max: 120 },
+      { name: "cedula", type: "text", max: 15 },
+      { name: "telefono", type: "text", max: 20 },
+      { name: "email", type: "text", max: 200 },
+      { name: "activo", type: "bool" },
+      { name: "fecha_designacion", type: "date" },
+      { name: "creado_por", type: "relation", collectionId: users.id, maxSelect: 1 },
+      ...autodates(),
+    ],
+    listRule: '@request.auth.role = "admin" || @request.auth.role = "nacional" || (@request.auth.role = "regional" && estado = @request.auth.estado) || (@request.auth.role = "municipal" && nivel = "CPM" && municipio = @request.auth.municipio)',
+    viewRule: '@request.auth.role = "admin" || @request.auth.role = "nacional" || (@request.auth.role = "regional" && estado = @request.auth.estado) || (@request.auth.role = "municipal" && nivel = "CPM" && municipio = @request.auth.municipio)',
+    createRule: '@request.auth.role = "admin" || @request.auth.role = "nacional" || @request.auth.role = "regional" || @request.auth.role = "municipal"',
+    updateRule: '@request.auth.role = "admin" || @request.auth.role = "nacional" || (@request.auth.role = "regional" && estado = @request.auth.estado) || (@request.auth.role = "municipal" && nivel = "CPM" && municipio = @request.auth.municipio)',
+    deleteRule: '@request.auth.role = "admin" || @request.auth.role = "nacional" || (@request.auth.role = "regional" && estado = @request.auth.estado) || (@request.auth.role = "municipal" && nivel = "CPM" && municipio = @request.auth.municipio)',
+  });
+
   // Sembrar catálogos y crear admin
   await seedEstados();
   await seedMunicipios();
