@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import Header from "../components/Header";
 import MapaVenezuela from "../components/MapaVenezuela";
+import { Badge, Button, Card, EmptyState, Icon, Modal, PageTitle, estadoTone } from "../components/ui";
 import { getRole, pb } from "../lib/pocketbase";
 import type { Estado, Militante, Municipio } from "../lib/types";
 
@@ -138,185 +139,350 @@ export default function Dashboard() {
   }
 
   const totalGeneral = militantes.length;
+  const pendientes = useMemo(() => militantes.filter((m) => m.estado_registro === "pendiente").length, [militantes]);
+  const aprobados = useMemo(() => militantes.filter((m) => m.estado_registro === "aprobado").length, [militantes]);
+  const cobertura = estadosVisibles.length
+    ? Math.round((estadosVisibles.filter((e) => (porEstado.get(e.id) || 0) > 0).length / estadosVisibles.length) * 100)
+    : 0;
+  const esAprueba = role === "admin" || role === "nacional";
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen pb-12">
       <Header />
-      <div className="mx-auto max-w-5xl p-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-mep-purple">Dashboard de militantes</h1>
-          <div className="flex gap-2">
-            <button onClick={exportarExcel} className="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700">
-              Exportar Excel
-            </button>
-            <button onClick={() => window.print()} className="rounded-lg bg-mep-purple px-3 py-1.5 text-sm text-mep-yellow hover:bg-mep-purple-dark">
-              Imprimir (PDF)
-            </button>
-          </div>
-        </div>
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+        <PageTitle
+          title="Dashboard de militantes"
+          subtitle={`Alcance ${role === "nacional" ? "nacional" : role === "regional" ? "regional" : role === "municipal" ? "municipal" : "general"} · actualización en tiempo real`}
+          icon="chart"
+          actions={
+            <>
+              <Button variant="secondary" icon="download" onClick={exportarExcel}>
+                Exportar Excel
+              </Button>
+              <Button variant="primary" icon="printer" onClick={() => window.print()}>
+                Imprimir PDF
+              </Button>
+            </>
+          }
+        />
 
-        <div className="mb-4 rounded-lg bg-mep-purple p-4 text-mep-yellow">
-          <span className="text-3xl font-bold">{totalGeneral}</span>
-          <span className="ml-2 text-sm">militantes en tu alcance</span>
+        {/* Métricas */}
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <MetricCard label="Militantes" value={totalGeneral} icon="users" tone="purple" hint="en tu alcance" />
+          <MetricCard label="Aprobados" value={aprobados} icon="checkCircle" tone="green" hint="con carnet" />
+          <MetricCard label="Pendientes" value={pendientes} icon="clock" tone="yellow" hint="por revisar" />
+          <MetricCard label="Cobertura" value={`${cobertura}%`} icon="mapPin" tone="blue" hint="estados con registros" />
         </div>
 
         {/* Breadcrumb */}
-        <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
-          <button onClick={() => { setVista("estados"); setSelEstado(null); setSelMunicipio(null); }}
-            className={vista === "estados" ? "font-semibold text-mep-purple" : "hover:text-mep-purple"}>
-            Estados
+        <nav className="mb-4 flex flex-wrap items-center gap-1.5 text-sm">
+          <button
+            onClick={() => {
+              setVista("estados");
+              setSelEstado(null);
+              setSelMunicipio(null);
+            }}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 transition ${
+              vista === "estados" ? "bg-mep-purple/10 font-semibold text-mep-purple" : "text-gray-500 hover:bg-gray-100"
+            }`}
+          >
+            <Icon name="grid" className="h-3.5 w-3.5" /> Estados
           </button>
           {selEstado && (
             <>
-              <span>›</span>
-              <button onClick={() => { setVista("municipios"); setSelMunicipio(null); }}
-                className={vista === "municipios" ? "font-semibold text-mep-purple" : "hover:text-mep-purple"}>
+              <Icon name="chevronRight" className="h-4 w-4 text-gray-300" />
+              <button
+                onClick={() => {
+                  setVista("municipios");
+                  setSelMunicipio(null);
+                }}
+                className={`rounded-lg px-2 py-1 transition ${
+                  vista === "municipios" ? "bg-mep-purple/10 font-semibold text-mep-purple" : "text-gray-500 hover:bg-gray-100"
+                }`}
+              >
                 {nombreEstado(selEstado)}
               </button>
             </>
           )}
           {selMunicipio && (
             <>
-              <span>›</span>
-              <span className="font-semibold text-mep-purple">{nombreMunicipio(selMunicipio)}</span>
+              <Icon name="chevronRight" className="h-4 w-4 text-gray-300" />
+              <span className="rounded-lg bg-mep-purple/10 px-2 py-1 font-semibold text-mep-purple">
+                {nombreMunicipio(selMunicipio)}
+              </span>
             </>
           )}
-        </div>
+        </nav>
 
         {/* VISTA: ESTADOS */}
         {vista === "estados" && (
-          <div className="space-y-2">
-            {(role === "admin" || role === "nacional") && (
-              <div className="mb-3 rounded-xl border border-gray-200 bg-white p-2">
-                <MapaVenezuela counts={countsPorNombre} onSelect={seleccionarEstadoPorNombre} />
-                <p className="px-1 pb-1 text-xs text-gray-400">
-                  Haz clic en un estado para ver sus municipios.
-                </p>
-              </div>
-            )}
-            {estadosVisibles.map((e) => {
-              const total = porEstado.get(e.id) || 0;
-              return (
-                <button
-                  key={e.id}
-                  onClick={() => { setSelEstado(e.id); setVista("municipios"); }}
-                  className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white p-3 text-left hover:border-mep-purple"
-                >
-                  <span className="font-medium text-gray-800">{e.nombre}</span>
-                  <div className="flex items-center gap-3">
-                    <div className="h-2 w-32 overflow-hidden rounded bg-gray-100">
-                      <div className="h-full bg-mep-purple" style={{ width: `${Math.min(100, total * 2)}%` }} />
+          <div className="space-y-4">
+            {esAprueba && (
+              <Card className="overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-mep-purple/10 text-mep-purple">
+                      <Icon name="mapPin" className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">Mapa de Venezuela</p>
+                      <p className="text-xs text-gray-500">Haz clic en un estado para ver sus municipios</p>
                     </div>
-                    <span className="w-8 text-right font-bold text-mep-purple">{total}</span>
                   </div>
-                </button>
-              );
-            })}
+                  <div className="flex items-center gap-3 text-[0.7rem] font-medium text-gray-500">
+                    <span className="inline-flex items-center gap-1.5">
+                      <i className="h-2.5 w-2.5 rounded-sm bg-mep-purple" /> Con militantes
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <i className="h-2.5 w-2.5 rounded-sm border border-gray-300 bg-gray-100" /> Sin registros
+                    </span>
+                  </div>
+                </div>
+                <div className="p-3 sm:p-4">
+                  <MapaVenezuela counts={countsPorNombre} onSelect={seleccionarEstadoPorNombre} />
+                </div>
+              </Card>
+            )}
+
+            <Card className="overflow-hidden">
+              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
+                <p className="text-sm font-bold text-gray-800">Estados</p>
+                <Badge tone="purple">{estadosVisibles.length} estados</Badge>
+              </div>
+              <ul className="divide-y divide-gray-100">
+                {estadosVisibles.map((e) => {
+                  const total = porEstado.get(e.id) || 0;
+                  return (
+                    <li key={e.id}>
+                      <button
+                        onClick={() => {
+                          setSelEstado(e.id);
+                          setVista("municipios");
+                        }}
+                        className="group flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-mep-purple/[0.035] sm:px-5"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 transition group-hover:bg-mep-purple/10 group-hover:text-mep-purple">
+                          <Icon name="mapPin" className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-gray-800">{e.nombre}</span>
+                          <span className="mt-1 block h-1.5 w-full max-w-[18rem] overflow-hidden rounded-full bg-gray-100">
+                            <span
+                              className="block h-full rounded-full bg-mep-purple transition-all"
+                              style={{ width: `${Math.min(100, total * 2)}%` }}
+                            />
+                          </span>
+                        </span>
+                        <span className="w-10 text-right text-sm font-extrabold text-mep-purple">{total}</span>
+                        <Icon name="chevronRight" className="h-4 w-4 text-gray-300 transition group-hover:text-mep-purple" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Card>
           </div>
         )}
 
         {/* VISTA: MUNICIPIOS */}
         {vista === "municipios" && (
-          <div className="space-y-2">
-            <button
-              onClick={() => { setVista("estados"); setSelEstado(null); }}
-              className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+          <div className="space-y-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon="chevronLeft"
+              onClick={() => {
+                setVista("estados");
+                setSelEstado(null);
+              }}
             >
-              ← Volver a estados
-            </button>
-            {municipiosDelEstado.map((m) => {
-              const total = porMunicipio.get(m.id) || 0;
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => { setSelMunicipio(m.id); setVista("militantes"); }}
-                  className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white p-3 text-left hover:border-mep-purple"
-                >
-                  <span className="font-medium text-gray-800">{m.nombre}</span>
-                  <span className="font-bold text-mep-purple">{total}</span>
-                </button>
-              );
-            })}
+              Volver a estados
+            </Button>
+
+            <Card className="overflow-hidden">
+              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
+                <div>
+                  <p className="text-sm font-bold text-gray-800">{nombreEstado(selEstado || "")}</p>
+                  <p className="text-xs text-gray-500">Municipios de la seccional</p>
+                </div>
+                <Badge tone="purple">{municipiosDelEstado.length} municipios</Badge>
+              </div>
+              {municipiosDelEstado.length === 0 ? (
+                <div className="p-5">
+                  <EmptyState icon="mapPin" title="Sin municipios" description="No hay municipios cargados para este estado." />
+                </div>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {municipiosDelEstado.map((m) => {
+                    const total = porMunicipio.get(m.id) || 0;
+                    return (
+                      <li key={m.id}>
+                        <button
+                          onClick={() => {
+                            setSelMunicipio(m.id);
+                            setVista("militantes");
+                          }}
+                          className="group flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-mep-purple/[0.035] sm:px-5"
+                        >
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 transition group-hover:bg-mep-purple/10 group-hover:text-mep-purple">
+                            <Icon name="mapPin" className="h-4 w-4" />
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-800">{m.nombre}</span>
+                          <Badge tone={total > 0 ? "purple" : "gray"}>{total} militantes</Badge>
+                          <Icon name="chevronRight" className="h-4 w-4 text-gray-300 transition group-hover:text-mep-purple" />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Card>
           </div>
         )}
 
         {/* VISTA: MILITANTES */}
         {vista === "militantes" && (
-          <div>
-            <button
-              onClick={() => { setVista("municipios"); setSelMunicipio(null); }}
-              className="mb-2 inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+          <div className="space-y-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon="chevronLeft"
+              onClick={() => {
+                setVista("municipios");
+                setSelMunicipio(null);
+              }}
             >
-              ← Volver a municipios
-            </button>
-            <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-              <table className="w-full text-left text-sm">
-              <thead className="bg-mep-purple text-mep-yellow">
-                <tr>
-                  <th className="px-3 py-2">Nombre</th>
-                  <th className="px-3 py-2">C.I.</th>
-                  <th className="px-3 py-2">Código</th>
-                  <th className="px-3 py-2">Estado</th>
-                  <th className="px-3 py-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {militantesDeMunicipio.map((m) => (
-                  <tr key={m.id} className="border-t border-gray-100 hover:bg-gray-50">
-                    <td className="px-3 py-2">{m.nombres} {m.apellidos}</td>
-                    <td className="px-3 py-2">{m.cedula || "—"}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{m.codigo || "—"}</td>
-                    <td className="px-3 py-2 capitalize">{m.estado_registro || "—"}</td>
-                    <td className="px-3 py-2 text-right">
-                      <button onClick={() => setDetalle(m)} className="rounded bg-mep-purple/10 px-2 py-1 text-xs text-mep-purple hover:bg-mep-purple/20">
-                        Ver ficha
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {militantesDeMunicipio.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-3 py-6 text-center text-gray-400">
-                      No hay militantes en este municipio.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              Volver a municipios
+            </Button>
+
+            <Card className="overflow-hidden">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 py-3.5">
+                <div>
+                  <p className="text-sm font-bold text-gray-800">{nombreMunicipio(selMunicipio || "")}</p>
+                  <p className="text-xs text-gray-500">{nombreEstado(selEstado || "")}</p>
+                </div>
+                <Badge tone="purple">{militantesDeMunicipio.length} militantes</Badge>
+              </div>
+
+              {militantesDeMunicipio.length === 0 ? (
+                <div className="p-5">
+                  <EmptyState icon="users" title="Sin militantes" description="Todavía no hay militantes registrados en este municipio." />
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-mep-purple text-mep-yellow">
+                      <tr>
+                        <th className="th">Nombre</th>
+                        <th className="th">C.I.</th>
+                        <th className="th">Código</th>
+                        <th className="th">Estatus</th>
+                        <th className="th text-right">Ficha</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {militantesDeMunicipio.map((m) => (
+                        <tr key={m.id} className="transition hover:bg-mep-purple/[0.03]">
+                          <td className="td font-semibold text-gray-800">
+                            {m.nombres} {m.apellidos}
+                          </td>
+                          <td className="td tabular-nums text-gray-600">{m.cedula || "—"}</td>
+                          <td className="td font-mono text-xs text-gray-600">{m.codigo || "—"}</td>
+                          <td className="td">
+                            <Badge tone={estadoTone(m.estado_registro)} dot className="capitalize">
+                              {m.estado_registro || "—"}
+                            </Badge>
+                          </td>
+                          <td className="td text-right">
+                            <Button variant="ghost" size="sm" iconRight="chevronRight" onClick={() => setDetalle(m)}>
+                              Ver ficha
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
           </div>
         )}
 
         {/* Modal detalle de militante */}
-        {detalle && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black/50 p-4" onClick={() => setDetalle(null)}>
-            <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => setDetalle(null)}
-                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200"
-                aria-label="Cerrar"
-              >
-                ✕
-              </button>
-              <h2 className="mb-3 pr-8 text-lg font-bold text-mep-purple">
+        <Modal open={!!detalle} onClose={() => setDetalle(null)}>
+          {detalle && (
+            <>
+              <h2 className="mb-1 pr-8 text-lg font-extrabold text-gray-900">
                 {detalle.nombres} {detalle.apellidos}
               </h2>
-              <dl className="space-y-2 text-sm">
-                <div className="flex justify-between"><dt className="text-gray-500">C.I.</dt><dd>{detalle.cedula || "—"}</dd></div>
-                <div className="flex justify-between"><dt className="text-gray-500">Código</dt><dd className="font-mono">{detalle.codigo || "—"}</dd></div>
-                <div className="flex justify-between"><dt className="text-gray-500">Estado</dt><dd>{nombreEstado(detalle.estado)}</dd></div>
-                <div className="flex justify-between"><dt className="text-gray-500">Municipio</dt><dd>{nombreMunicipio(detalle.municipio)}</dd></div>
-                <div className="flex justify-between"><dt className="text-gray-500">Estado registro</dt><dd className="capitalize">{detalle.estado_registro || "—"}</dd></div>
-                <div className="flex justify-between"><dt className="text-gray-500">Teléfono</dt><dd>{detalle.telefono || "—"}</dd></div>
-                <div className="flex justify-between"><dt className="text-gray-500">Registrado</dt><dd>{new Date(detalle.created).toLocaleDateString("es-VE")}</dd></div>
+              <p className="mb-4 text-xs text-gray-500">Ficha del militante</p>
+              <dl className="space-y-2.5 rounded-xl bg-gray-50 p-4 text-sm">
+                <Row label="C.I." value={detalle.cedula || "—"} />
+                <Row label="Código" value={<span className="font-mono">{detalle.codigo || "—"}</span>} />
+                <Row label="Estado" value={nombreEstado(detalle.estado)} />
+                <Row label="Municipio" value={nombreMunicipio(detalle.municipio)} />
+                <Row
+                  label="Estatus"
+                  value={
+                    <Badge tone={estadoTone(detalle.estado_registro)} dot className="capitalize">
+                      {detalle.estado_registro || "—"}
+                    </Badge>
+                  }
+                />
+                <Row label="Teléfono" value={detalle.telefono || "—"} />
+                <Row label="Registrado" value={new Date(detalle.created).toLocaleDateString("es-VE")} />
               </dl>
-              <button onClick={() => setDetalle(null)} className="mt-4 w-full rounded-lg bg-mep-purple py-2 font-semibold text-mep-yellow hover:bg-mep-purple-dark">
+              <Button block className="mt-4" onClick={() => setDetalle(null)}>
                 Cerrar
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+              </Button>
+            </>
+          )}
+        </Modal>
+      </main>
     </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-gray-500">{label}</dt>
+      <dd className="text-right font-medium text-gray-800">{value}</dd>
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  icon,
+  tone,
+  hint
+}: {
+  label: string;
+  value: number | string;
+  icon: "users" | "checkCircle" | "clock" | "mapPin";
+  tone: "purple" | "green" | "yellow" | "blue";
+  hint: string;
+}) {
+  const tones: Record<string, string> = {
+    purple: "bg-mep-purple/10 text-mep-purple",
+    green: "bg-emerald-50 text-emerald-600",
+    yellow: "bg-amber-50 text-amber-600",
+    blue: "bg-sky-50 text-sky-600"
+  };
+  return (
+    <Card className="p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-[0.7rem] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+          <p className="mt-1 text-2xl font-extrabold tabular-nums tracking-tight text-gray-900">{value}</p>
+          <p className="mt-0.5 truncate text-[0.7rem] text-gray-400">{hint}</p>
+        </div>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tones[tone]}`}>
+          <Icon name={icon} className="h-4 w-4" />
+        </span>
+      </div>
+    </Card>
   );
 }
