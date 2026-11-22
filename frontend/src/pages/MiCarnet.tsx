@@ -2,19 +2,43 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import { pb } from "../lib/pocketbase";
+import { generarYGuardarCarnet } from "../lib/carnet";
 
 export default function MiCarnet() {
   const me = pb.authStore.model as Record<string, any> | null;
   const [record, setRecord] = useState<Record<string, any> | null>(me);
   const [descargando, setDescargando] = useState(false);
+  const [generando, setGenerando] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (me?.id) {
-      pb.collection("militantes")
-        .getOne(me.id, { expand: "estado,municipio" })
-        .then((r) => setRecord(r as Record<string, any>))
-        .catch(() => {});
-    }
+    if (!me?.id) return;
+    (async () => {
+      try {
+        const r = await pb.collection("militantes").getOne(me.id, { expand: "estado,municipio" });
+        setRecord(r);
+
+        // Si está aprobado pero aún no tiene PDF, se genera en el navegador.
+        if (r.estado_registro === "aprobado" && !r.carnet_pdf && r.codigo) {
+          setGenerando(true);
+          await generarYGuardarCarnet(me.id, {
+            nombres: r.nombres,
+            apellidos: r.apellidos,
+            cedula: r.cedula,
+            codigo: r.codigo,
+            estadoNombre: r.expand?.estado?.nombre || "",
+            municipioNombre: r.expand?.municipio?.nombre || ""
+          });
+          await pb.collection("militantes").update(me.id, { carnet_generado: true, carnet_impreso: false });
+          const r2 = await pb.collection("militantes").getOne(me.id, { expand: "estado,municipio" });
+          setRecord(r2);
+        }
+      } catch {
+        setError("No se pudo preparar tu carnet. Intenta recargar la página.");
+      } finally {
+        setGenerando(false);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -46,6 +70,14 @@ export default function MiCarnet() {
         <h1 className="mb-4 text-xl font-bold text-mep-purple">Mi carnet</h1>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow">
+          {generando && (
+            <p className="mb-3 rounded-lg bg-mep-purple/10 p-3 text-sm font-medium text-mep-purple">
+              Generando tu carnet…
+            </p>
+          )}
+          {error && (
+            <p className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</p>
+          )}
           <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-mep-purple text-xl font-black text-mep-yellow">
             MEP
           </div>
