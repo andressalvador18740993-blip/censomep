@@ -53,6 +53,8 @@ export default {
         xl2: "1.15rem"
       },
       backgroundImage: {
+        "brand":
+          "radial-gradient(1200px 600px at 100% -10%, rgba(255, 242, 0, 0.16), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(255, 255, 255, 0.12), transparent 55%), linear-gradient(135deg, #4A006B 0%, #63008F 45%, #7A16A8 100%)",
         "brand-gradient": "linear-gradient(135deg, #4A006B 0%, #63008F 45%, #7A16A8 100%)",
         "brand-radial":
           "radial-gradient(1200px 600px at 100% -10%, rgba(255, 242, 0, 0.16), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(255, 255, 255, 0.12), transparent 55%)"
