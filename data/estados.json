@@ -23,5 +23,6 @@
   { "codigo": "TAC", "nombre": "Táchira" },
   { "codigo": "TRU", "nombre": "Trujillo" },
   { "codigo": "YAR", "nombre": "Yaracuy" },
-  { "codigo": "ZUL", "nombre": "Zulia" }
+  { "codigo": "ZUL", "nombre": "Zulia" },
+  { "codigo": "ESE", "nombre": "Guayana Esequiba" }
 ]
