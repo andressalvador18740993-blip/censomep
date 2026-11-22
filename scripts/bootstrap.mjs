@@ -240,6 +240,7 @@ async function main() {
       { name: "estado_registro", type: "select", maxSelect: 1, values: ["borrador", "pendiente", "aprobado", "rechazado", "bloqueado"] },
       { name: "aprobado_por", type: "relation", collectionId: users.id, maxSelect: 1 },
       { name: "fecha_aprobacion", type: "date" },
+      { name: "fecha_pendiente", type: "date" },
       { name: "motivo_rechazo", type: "text", max: 255 },
       { name: "carnet_pdf", type: "file", maxSelect: 1, maxSize: 10485760, mimeTypes: ["application/pdf"] },
       { name: "carnet_generado", type: "bool" },
@@ -359,8 +360,8 @@ async function main() {
       ] },
       { name: "nombres", type: "text", required: true, max: 120 },
       { name: "apellidos", type: "text", required: true, max: 120 },
-      { name: "cedula", type: "text", max: 15 },
-      { name: "telefono", type: "text", max: 20 },
+      { name: "cedula", type: "text", required: true, max: 15 },
+      { name: "telefono", type: "text", required: true, max: 20 },
       { name: "email", type: "text", max: 200 },
       { name: "activo", type: "bool" },
       { name: "fecha_designacion", type: "date" },
@@ -368,6 +369,7 @@ async function main() {
       { name: "estado_registro", type: "select", maxSelect: 1, values: ["pendiente", "aprobado", "rechazado"] },
       { name: "aprobado_por", type: "relation", collectionId: users.id, maxSelect: 1 },
       { name: "fecha_aprobacion", type: "date" },
+      { name: "fecha_pendiente", type: "date" },
       { name: "motivo_rechazo", type: "text", max: 255 },
       ...autodates(),
     ],
@@ -386,6 +388,12 @@ async function main() {
     updateRule: ESTRUCTURA_WRITE_RULE,
     deleteRule: ESTRUCTURA_WRITE_RULE,
   });
+
+  // Forzar "required" en cédula/teléfono (upsertCollection no modifica campos existentes)
+  const estructuraFields = estructura.fields.map((f) =>
+    f.name === "cedula" || f.name === "telefono" ? { ...f, required: true } : f
+  );
+  await api(`/api/collections/${estructura.id}`, "PATCH", { fields: estructuraFields });
 
   // Sembrar catálogos y crear admin
   await seedEstados();
