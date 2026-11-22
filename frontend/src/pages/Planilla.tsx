@@ -20,6 +20,7 @@ export default function Planilla() {
       ...planillaFields(data),
       codigo,
       estado_registro: "pendiente",
+      fecha_pendiente: new Date().toISOString(),
       tipo_registro: esRecenso ? "recenso" : "inscripcion",
       responsable_registro: me.email,
       version_censo: (Number(me.version_censo) || 0) + 1,
