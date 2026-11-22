@@ -4,6 +4,7 @@ import PlanillaForm from "../components/PlanillaForm";
 import { getRole, pb } from "../lib/pocketbase";
 import { generarCodigo, planillaFields } from "../lib/planilla";
 import { generarYGuardarCarnet } from "../lib/carnet";
+import { esExpirado, textoPendiente } from "../lib/fechas";
 import type { Estado, Militante, Municipio, User } from "../lib/types";
 
 type Tab = "aprobaciones" | "militantes" | "usuarios" | "registrar";
@@ -199,6 +200,7 @@ export default function Admin() {
       ...planillaFields(data),
       codigo,
       estado_registro: "pendiente",
+      fecha_pendiente: new Date().toISOString(),
       tipo_registro: "inscripcion",
       responsable_registro: me?.email || "",
       version_censo: 1,
@@ -242,22 +244,30 @@ export default function Admin() {
         {tab === "aprobaciones" && esAprueba && (
           <div className="space-y-3">
             {pendientes.length === 0 && <p className="text-gray-500">No hay militantes pendientes de aprobación.</p>}
-            {pendientes.map((m) => (
-              <div key={m.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-3">
-                <div>
-                  <div className="font-medium">{m.nombres} {m.apellidos}</div>
-                  <div className="text-xs text-gray-500">
-                    C.I. {m.cedula || "—"} · {estadoDe(m.estado)} / {municipioDe(m.municipio)} · <span className="font-mono">{m.codigo}</span>
+            {pendientes.map((m) => {
+              const pendienteDesde = m.fecha_pendiente || m.updated;
+              const expirado = esExpirado(pendienteDesde);
+              return (
+                <div key={m.id} className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 ${expirado ? "border-orange-300 bg-orange-50/60" : "border-gray-200 bg-white"}`}>
+                  <div>
+                    <div className="font-medium">{m.nombres} {m.apellidos}</div>
+                    <div className="text-xs text-gray-500">
+                      C.I. {m.cedula || "—"} · {estadoDe(m.estado)} / {municipioDe(m.municipio)} · <span className="font-mono">{m.codigo}</span>
+                    </div>
+                    <div className={`mt-1 text-xs font-medium ${expirado ? "text-orange-600" : "text-gray-400"}`}>
+                      {textoPendiente(pendienteDesde)}
+                      {expirado && <span className="ml-2 rounded bg-orange-100 px-1.5 py-0.5 font-semibold text-orange-700">Expirado (más de 30 días)</span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => aprobar(m)} disabled={procesando === m.id || expirado} className="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
+                      {procesando === m.id ? "Generando…" : "Aprobar"}
+                    </button>
+                    <button onClick={() => rechazar(m.id)} className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700">Rechazar</button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => aprobar(m)} disabled={procesando === m.id} className="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700 disabled:opacity-60">
-                    {procesando === m.id ? "Generando…" : "Aprobar"}
-                  </button>
-                  <button onClick={() => rechazar(m.id)} className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700">Rechazar</button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
