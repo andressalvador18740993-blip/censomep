@@ -81,6 +81,8 @@ export interface Conexion {
 
 export type EstructuraNivel = "CPR" | "CPM";
 
+export type EstructuraEstado = "pendiente" | "aprobado" | "rechazado";
+
 export interface Estructura {
   id: string;
   nivel: EstructuraNivel;
@@ -95,6 +97,10 @@ export interface Estructura {
   activo: boolean;
   fecha_designacion?: string;
   creado_por?: string;
+  estado_registro: EstructuraEstado;
+  aprobado_por?: string;
+  fecha_aprobacion?: string;
+  motivo_rechazo?: string;
   created: string;
   updated: string;
 }
