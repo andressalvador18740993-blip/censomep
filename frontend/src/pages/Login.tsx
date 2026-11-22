@@ -28,7 +28,7 @@ export default function Login() {
   return (
     <div className="grid min-h-screen bg-mep-purple-deep lg:grid-cols-[1.05fr_1fr]">
       {/* Panel de marca */}
-      <div className="relative hidden overflow-hidden bg-brand-gradient bg-brand-radial p-10 text-white lg:flex lg:flex-col lg:justify-between">
+      <div className="relative hidden overflow-hidden bg-brand p-10 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-mep-yellow/10 blur-2xl" />
         <div className="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
         <div className="relative">
