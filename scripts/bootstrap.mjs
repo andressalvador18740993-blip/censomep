@@ -79,16 +79,18 @@ function autodates() {
 }
 
 async function seedEstados() {
-  const existing = await api("/api/collections/estados/records?perPage=1");
-  if (existing.totalItems > 0) {
-    console.log(`  = estados ya sembrados (${existing.totalItems > 0 ? "sí" : "no"})`);
+  const estados = JSON.parse(readFileSync(join(ROOT, "data", "estados.json"), "utf8"));
+  const existing = await api("/api/collections/estados/records?perPage=200");
+  const porCodigo = new Set(existing.items.map((e) => e.codigo));
+  const faltantes = estados.filter((e) => !porCodigo.has(e.codigo));
+  if (faltantes.length === 0) {
+    console.log("  = estados ya sembrados (completos)");
     return;
   }
-  const estados = JSON.parse(readFileSync(join(ROOT, "data", "estados.json"), "utf8"));
-  for (const e of estados) {
+  for (const e of faltantes) {
     await api(`/api/collections/estados/records`, "POST", { codigo: e.codigo, nombre: e.nombre });
   }
-  console.log(`  ✔ sembrados ${estados.length} estados`);
+  console.log(`  ✔ añadidos ${faltantes.length} estados faltantes`);
 }
 
 async function seedMunicipios() {
