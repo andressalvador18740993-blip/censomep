@@ -15,6 +15,7 @@ import {
   type IconName
 } from "../components/ui";
 import { getRole, pb } from "../lib/pocketbase";
+import { esExpirado, textoPendiente } from "../lib/fechas";
 import type { Estado, Estructura, EstructuraNivel, Municipio } from "../lib/types";
 
 const CARGOS = [
@@ -80,6 +81,7 @@ export default function EstructuraPage() {
 
   const [modal, setModal] = useState<{ modo: "crear" | "editar"; nivel: EstructuraNivel; editando?: Estructura } | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
+  const [detalle, setDetalle] = useState<Estructura | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
@@ -204,6 +206,14 @@ export default function EstructuraPage() {
       setError("Selecciona el municipio.");
       return;
     }
+    if (!form.cedula.trim()) {
+      setError("La cédula es obligatoria.");
+      return;
+    }
+    if (!form.telefono.trim()) {
+      setError("El número de teléfono es obligatorio.");
+      return;
+    }
     setGuardando(true);
     setError("");
     try {
@@ -233,6 +243,7 @@ export default function EstructuraPage() {
           payload.fecha_aprobacion = new Date().toISOString();
         } else {
           payload.estado_registro = "pendiente";
+          payload.fecha_pendiente = new Date().toISOString();
         }
         await pb.collection("estructura").create(payload);
         setMsg(esAdmin ? "Cargo agregado a la estructura." : "Cargo enviado para aprobación.");
@@ -357,35 +368,47 @@ export default function EstructuraPage() {
               icon="clock"
             />
             <ul className="divide-y divide-gray-100">
-              {porAprobar.map((r) => (
-                <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
-                  <div className="min-w-0">
-                    <div className="font-semibold text-gray-800">
-                      {r.cargo} <span className="text-xs font-medium text-gray-400">· {r.nivel}</span>
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {r.nombres} {r.apellidos} · {r.nivel === "CPR" ? nombreEstado(r.estado) : nombreMunicipio(r.municipio || "")}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <EstadoBadge r={r} />
-                    {r.estado_registro === "pendiente" ? (
-                      <>
-                        <Button size="sm" variant="success" icon="check" onClick={() => aprobar(r)}>
-                          Aprobar
-                        </Button>
-                        <Button size="sm" variant="danger" icon="x" onClick={() => rechazar(r)}>
-                          Rechazar
-                        </Button>
-                      </>
-                    ) : (
-                      <Button size="sm" variant="ghost" icon="x" onClick={() => eliminar(r)}>
-                        Eliminar
+              {porAprobar.map((r) => {
+                const expirado = r.estado_registro === "pendiente" && esExpirado(r.fecha_pendiente || r.created);
+                return (
+                  <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 transition hover:bg-mep-purple/[0.03]">
+                    <button onClick={() => setDetalle(r)} className="min-w-0 flex-1 text-left">
+                      <div className="font-semibold text-gray-800">
+                        {r.cargo} <span className="text-xs font-medium text-gray-400">· {r.nivel}</span>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {r.nombres} {r.apellidos} · {r.nivel === "CPR" ? nombreEstado(r.estado) : nombreMunicipio(r.municipio || "")}
+                      </div>
+                      {r.estado_registro === "pendiente" && (
+                        <div className={`mt-0.5 text-xs font-medium ${expirado ? "text-orange-600" : "text-gray-400"}`}>
+                          {textoPendiente(r.fecha_pendiente || r.created)}
+                          {expirado && <span className="ml-1.5 rounded bg-orange-100 px-1.5 py-0.5 font-semibold text-orange-700">Expirado</span>}
+                        </div>
+                      )}
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <EstadoBadge r={r} />
+                      <Button size="sm" variant="ghost" iconRight="chevronRight" onClick={() => setDetalle(r)}>
+                        Ver
                       </Button>
-                    )}
-                  </div>
-                </li>
-              ))}
+                      {r.estado_registro === "pendiente" ? (
+                        <>
+                          <Button size="sm" variant="success" icon="check" onClick={() => aprobar(r)} disabled={expirado}>
+                            Aprobar
+                          </Button>
+                          <Button size="sm" variant="danger" icon="x" onClick={() => rechazar(r)}>
+                            Rechazar
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="sm" variant="ghost" icon="x" onClick={() => eliminar(r)}>
+                          Eliminar
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </Card>
         )}
@@ -623,6 +646,56 @@ export default function EstructuraPage() {
             </Button>
           </div>
         </Modal>
+
+        {/* Modal detalle de cargo pendiente */}
+        <Modal open={!!detalle} onClose={() => setDetalle(null)} className="max-w-lg">
+          {detalle && (
+            <>
+              <div className="mb-1 flex items-center gap-2 pr-8">
+                <h2 className="text-lg font-extrabold text-gray-900">{detalle.cargo}</h2>
+                <Badge tone="purple">{detalle.nivel}</Badge>
+              </div>
+              <p className="mb-4 text-xs text-gray-500">
+                {detalle.nivel === "CPR" ? "Comando Político Regional" : "Comando Político Municipal"}
+              </p>
+              <dl className="space-y-2.5 rounded-xl bg-gray-50 p-4 text-sm">
+                <Fila label="Nombre" value={`${detalle.nombres} ${detalle.apellidos}`} />
+                <Fila label="C.I." value={detalle.cedula || "—"} />
+                <Fila label="Teléfono" value={detalle.telefono || "—"} />
+                <Fila label="Correo" value={detalle.email || "—"} />
+                <Fila label="Estado" value={nombreEstado(detalle.estado)} />
+                {detalle.nivel === "CPM" && <Fila label="Municipio" value={nombreMunicipio(detalle.municipio || "")} />}
+                <Fila label="Activo" value={detalle.activo !== false ? "Sí" : "No"} />
+                {detalle.fecha_designacion && <Fila label="Designación" value={new Date(detalle.fecha_designacion).toLocaleDateString("es-VE")} />}
+                <Fila label="Estatus" value={<EstadoBadge r={detalle} />} />
+                {detalle.estado_registro === "pendiente" && (
+                  <Fila label="Enviado" value={textoPendiente(detalle.fecha_pendiente || detalle.created)} />
+                )}
+              </dl>
+              <div className="mt-5 flex justify-end gap-2">
+                {detalle.estado_registro === "pendiente" ? (
+                  <>
+                    <Button variant="danger" icon="x" onClick={() => { rechazar(detalle); setDetalle(null); }}>
+                      Rechazar
+                    </Button>
+                    <Button
+                      variant="success"
+                      icon="check"
+                      disabled={esExpirado(detalle.fecha_pendiente || detalle.created)}
+                      onClick={() => { aprobar(detalle); setDetalle(null); }}
+                    >
+                      Aprobar
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="secondary" onClick={() => setDetalle(null)}>
+                    Cerrar
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </Modal>
       </main>
     </div>
   );
@@ -650,6 +723,15 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
       <span className="field-label">{label}</span>
       {children}
     </label>
+  );
+}
+
+function Fila({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-gray-500">{label}</dt>
+      <dd className="text-right font-medium text-gray-800">{value}</dd>
+    </div>
   );
 }
 
