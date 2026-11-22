@@ -3,6 +3,7 @@ import Header from "../components/Header";
 import PlanillaForm from "../components/PlanillaForm";
 import { getRole, pb } from "../lib/pocketbase";
 import { generarCodigo, planillaFields } from "../lib/planilla";
+import { generarYGuardarCarnet } from "../lib/carnet";
 import type { Estado, Militante, Municipio, User } from "../lib/types";
 
 type Tab = "aprobaciones" | "militantes" | "usuarios" | "registrar";
@@ -21,6 +22,7 @@ export default function Admin() {
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [msg, setMsg] = useState("");
   const [registroKey, setRegistroKey] = useState(0);
+  const [procesando, setProcesando] = useState<string | null>(null);
 
   const [nuevo, setNuevo] = useState({
     email: "",
@@ -69,36 +71,71 @@ export default function Admin() {
     return () => unsub?.();
   }, [cargar]);
 
-  async function aprobar(id: string) {
-    const workerUrl = import.meta.env.VITE_WORKER_URL as string | undefined;
-    if (!workerUrl) {
-      // Fallback sin worker: solo cambia el estado (el carnet se generará al desplegar el worker)
-      await pb.collection("militantes").update(id, {
+  /** Sube el carnet PDF (generado en el navegador) y lo marca como generado. */
+  async function subirCarnet(m: Militante) {
+    await generarYGuardarCarnet(m.id, {
+      nombres: m.nombres,
+      apellidos: m.apellidos,
+      cedula: m.cedula,
+      codigo: m.codigo,
+      estadoNombre: estadoDe(m.estado),
+      municipioNombre: municipioDe(m.municipio)
+    });
+    await pb.collection("militantes").update(m.id, { carnet_generado: true, carnet_impreso: false });
+  }
+
+  async function aprobar(m: Militante) {
+    setProcesando(m.id);
+    try {
+      const workerUrl = import.meta.env.VITE_WORKER_URL as string | undefined;
+      if (workerUrl) {
+        try {
+          const apiKey = import.meta.env.VITE_WORKER_API_KEY as string | undefined;
+          const res = await fetch(`${workerUrl}/aprobar`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(apiKey ? { "x-api-key": apiKey } : {})
+            },
+            body: JSON.stringify({ militanteId: m.id, aprobadoPor: me?.id ?? null })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            setMsg(`Militante aprobado. Carnet generado: ${data.codigo}`);
+            cargar();
+            return;
+          }
+        } catch {
+          /* el worker no está disponible: se genera en el navegador */
+        }
+      }
+      // Generación local del carnet (sin depender del VPS)
+      await subirCarnet(m);
+      await pb.collection("militantes").update(m.id, {
         estado_registro: "aprobado",
         fecha_aprobacion: new Date().toISOString(),
         aprobado_por: me?.id ?? null,
         motivo_rechazo: ""
       });
-      setMsg("Militante aprobado (worker no configurado: el carnet se generará al desplegarlo).");
-      cargar();
-      return;
-    }
-    try {
-      const apiKey = import.meta.env.VITE_WORKER_API_KEY as string | undefined;
-      const res = await fetch(`${workerUrl}/aprobar`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(apiKey ? { "x-api-key": apiKey } : {})
-        },
-        body: JSON.stringify({ militanteId: id, aprobadoPor: me?.id ?? null })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error del worker");
-      setMsg(`Militante aprobado. Carnet generado: ${data.codigo}`);
+      setMsg(`Militante aprobado. Carnet generado: ${m.codigo}`);
       cargar();
     } catch (e: any) {
       setMsg(`No se pudo aprobar: ${e?.message || e}`);
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  async function generarCarnet(m: Militante) {
+    setProcesando(m.id);
+    try {
+      await subirCarnet(m);
+      setMsg(`Carnet generado para ${m.nombres} ${m.apellidos}.`);
+      cargar();
+    } catch (e: any) {
+      setMsg(`No se pudo generar el carnet: ${e?.message || e}`);
+    } finally {
+      setProcesando(null);
     }
   }
 
@@ -214,7 +251,9 @@ export default function Admin() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => aprobar(m.id)} className="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700">Aprobar</button>
+                  <button onClick={() => aprobar(m)} disabled={procesando === m.id} className="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700 disabled:opacity-60">
+                    {procesando === m.id ? "Generando…" : "Aprobar"}
+                  </button>
                   <button onClick={() => rechazar(m.id)} className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700">Rechazar</button>
                 </div>
               </div>
@@ -250,7 +289,12 @@ export default function Admin() {
                         ) : (
                           <button onClick={() => bloquear(m.id)} className="rounded bg-gray-600 px-2 py-1 text-xs text-white hover:bg-gray-700">Bloquear</button>
                         )}
-                        {m.estado_registro === "aprobado" && m.carnet_generado && (
+                        {m.estado_registro === "aprobado" && !m.carnet_pdf && (
+                          <button onClick={() => generarCarnet(m)} disabled={procesando === m.id} className="rounded bg-mep-purple px-2 py-1 text-xs text-mep-yellow hover:bg-mep-purple-dark disabled:opacity-60">
+                            {procesando === m.id ? "Generando…" : "Generar carnet"}
+                          </button>
+                        )}
+                        {m.estado_registro === "aprobado" && m.carnet_pdf && (
                           <button onClick={() => reimprimirCarnet(m.id)} className="rounded bg-mep-purple px-2 py-1 text-xs text-mep-yellow hover:bg-mep-purple-dark">Reimprimir carnet</button>
                         )}
                       </div>
