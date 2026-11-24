@@ -28,7 +28,7 @@ export default function Registro() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F5F3F7] bg-brand-radial p-6">
+    <div className="flex min-h-dvh items-center justify-center bg-[#F5F3F7] bg-brand-radial p-4 py-8 sm:p-6">
       <div className="w-full max-w-md animate-slide-up">
         <div className="mb-6 text-center">
           <span className="mx-auto mb-4 inline-flex items-center rounded-2xl bg-white px-4 py-2 shadow-soft">
@@ -38,7 +38,7 @@ export default function Registro() {
           <p className="text-sm text-gray-500">Completa tus datos para iniciar tu inscripción al MEP.</p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200/80 bg-white p-7 shadow-card">
+        <div className="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-card sm:p-7">
           {error && (
             <div className="mb-4 flex items-start gap-2 rounded-xl bg-red-50 px-3 py-2.5 text-sm text-red-700 ring-1 ring-inset ring-red-600/10">
               <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0" />
