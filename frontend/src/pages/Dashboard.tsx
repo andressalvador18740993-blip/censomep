@@ -147,7 +147,7 @@ export default function Dashboard() {
   const esAprueba = role === "admin" || role === "nacional";
 
   return (
-    <div className="min-h-screen pb-12">
+    <div className="min-h-dvh pb-12">
       <Header />
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <PageTitle
@@ -167,7 +167,7 @@ export default function Dashboard() {
         />
 
         {/* Métricas */}
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
           <MetricCard label="Militantes" value={totalGeneral} icon="users" tone="purple" hint="en tu alcance" />
           <MetricCard label="Aprobados" value={aprobados} icon="checkCircle" tone="green" hint="con carnet" />
           <MetricCard label="Pendientes" value={pendientes} icon="clock" tone="yellow" hint="por revisar" />
@@ -373,40 +373,65 @@ export default function Dashboard() {
                   <EmptyState icon="users" title="Sin militantes" description="Todavía no hay militantes registrados en este municipio." />
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-mep-purple text-mep-yellow">
-                      <tr>
-                        <th className="th">Nombre</th>
-                        <th className="th">C.I.</th>
-                        <th className="th">Código</th>
-                        <th className="th">Estatus</th>
-                        <th className="th text-right">Ficha</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {militantesDeMunicipio.map((m) => (
-                        <tr key={m.id} className="transition hover:bg-mep-purple/[0.03]">
-                          <td className="td font-semibold text-gray-800">
-                            {m.nombres} {m.apellidos}
-                          </td>
-                          <td className="td tabular-nums text-gray-600">{m.cedula || "—"}</td>
-                          <td className="td font-mono text-xs text-gray-600">{m.codigo || "—"}</td>
-                          <td className="td">
-                            <Badge tone={estadoTone(m.estado_registro)} dot className="capitalize">
-                              {m.estado_registro || "—"}
-                            </Badge>
-                          </td>
-                          <td className="td text-right">
-                            <Button variant="ghost" size="sm" iconRight="chevronRight" onClick={() => setDetalle(m)}>
-                              Ver ficha
-                            </Button>
-                          </td>
+                <>
+                  <div className="hidden overflow-x-auto md:block">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-mep-purple text-mep-yellow">
+                        <tr>
+                          <th className="th">Nombre</th>
+                          <th className="th">C.I.</th>
+                          <th className="th">Código</th>
+                          <th className="th">Estatus</th>
+                          <th className="th text-right">Ficha</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {militantesDeMunicipio.map((m) => (
+                          <tr key={m.id} className="transition hover:bg-mep-purple/[0.03]">
+                            <td className="td font-semibold text-gray-800">
+                              {m.nombres} {m.apellidos}
+                            </td>
+                            <td className="td tabular-nums text-gray-600">{m.cedula || "—"}</td>
+                            <td className="td font-mono text-xs text-gray-600">{m.codigo || "—"}</td>
+                            <td className="td">
+                              <Badge tone={estadoTone(m.estado_registro)} dot className="capitalize">
+                                {m.estado_registro || "—"}
+                              </Badge>
+                            </td>
+                            <td className="td text-right">
+                              <Button variant="ghost" size="sm" iconRight="chevronRight" onClick={() => setDetalle(m)}>
+                                Ver ficha
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Móvil: tarjetas */}
+                  <div className="space-y-3 md:hidden">
+                    {militantesDeMunicipio.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => setDetalle(m)}
+                        className="block w-full rounded-xl border border-gray-200 bg-white p-3 text-left transition hover:border-mep-purple/40"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="truncate font-semibold text-gray-800">{m.nombres} {m.apellidos}</div>
+                            <div className="mt-0.5 truncate text-xs text-gray-500">
+                              C.I. {m.cedula || "—"} · {m.codigo || "—"}
+                            </div>
+                          </div>
+                          <Badge tone={estadoTone(m.estado_registro)} dot className="capitalize">
+                            {m.estado_registro || "—"}
+                          </Badge>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
             </Card>
           </div>
