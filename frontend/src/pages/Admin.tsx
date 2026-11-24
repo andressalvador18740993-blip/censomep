@@ -285,14 +285,14 @@ export default function Admin() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-dvh bg-gray-50">
       <Header />
-      <div className="mx-auto max-w-5xl p-6">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:p-6">
         <h1 className="mb-4 text-xl font-bold text-mep-purple">Panel de administración</h1>
         {msg && <p className="mb-3 rounded-lg bg-mep-purple/10 p-3 text-sm text-mep-purple">{msg}</p>}
 
         {/* Tabs */}
-        <div className="mb-4 flex gap-2">
+        <div className="mb-4 flex flex-wrap gap-2">
           {esAprueba && <TabBtn active={tab === "aprobaciones"} onClick={() => setTab("aprobaciones")}>Aprobaciones ({pendientes.length})</TabBtn>}
           {esAprueba && <TabBtn active={tab === "militantes"} onClick={() => setTab("militantes")}>Militantes ({todos.length})</TabBtn>}
           {esAprueba && <TabBtn active={tab === "estructura"} onClick={() => setTab("estructura")}>Estructura ({estrucPendientes.filter((r) => r.estado_registro === "pendiente").length})</TabBtn>}
@@ -320,10 +320,10 @@ export default function Admin() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => aprobar(m)} disabled={procesando === m.id || expirado} className="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
+                    <button onClick={() => aprobar(m)} disabled={procesando === m.id || expirado} className="rounded-lg bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">
                       {procesando === m.id ? "Generando…" : "Aprobar"}
                     </button>
-                    <button onClick={() => rechazar(m.id)} className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700">Rechazar</button>
+                    <button onClick={() => rechazar(m.id)} className="rounded-lg bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700">Rechazar</button>
                   </div>
                 </div>
               );
@@ -333,47 +333,82 @@ export default function Admin() {
 
         {/* MILITANTES (bloquear/desbloquear) */}
         {tab === "militantes" && esAprueba && (
-          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-mep-purple text-mep-yellow">
-                <tr>
-                  <th className="px-3 py-2">Militante</th>
-                  <th className="px-3 py-2">Código</th>
-                  <th className="px-3 py-2">Estado</th>
-                  <th className="px-3 py-2">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {todos.map((m) => (
-                  <tr key={m.id} className="border-t border-gray-100">
-                    <td className="px-3 py-2">
-                      <div className="font-medium">{m.nombres} {m.apellidos}</div>
-                      <div className="text-xs text-gray-500">{estadoDe(m.estado)} / {municipioDe(m.municipio)}</div>
-                    </td>
-                    <td className="px-3 py-2 font-mono text-xs">{m.codigo || "—"}</td>
-                    <td className="px-3 py-2">{badge(m.estado_registro)}</td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap gap-1">
-                        {m.estado_registro === "bloqueado" ? (
-                          <button onClick={() => desbloquear(m.id)} className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700">Desbloquear</button>
-                        ) : (
-                          <button onClick={() => bloquear(m.id)} className="rounded bg-gray-600 px-2 py-1 text-xs text-white hover:bg-gray-700">Bloquear</button>
-                        )}
-                        {m.estado_registro === "aprobado" && !m.carnet_pdf && (
-                          <button onClick={() => generarCarnet(m)} disabled={procesando === m.id} className="rounded bg-mep-purple px-2 py-1 text-xs text-mep-yellow hover:bg-mep-purple-dark disabled:opacity-60">
-                            {procesando === m.id ? "Generando…" : "Generar carnet"}
-                          </button>
-                        )}
-                        {m.estado_registro === "aprobado" && m.carnet_pdf && (
-                          <button onClick={() => reimprimirCarnet(m.id)} className="rounded bg-mep-purple px-2 py-1 text-xs text-mep-yellow hover:bg-mep-purple-dark">Reimprimir carnet</button>
-                        )}
-                      </div>
-                    </td>
+          <>
+            {/* Escritorio / tablet: tabla */}
+            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 bg-white md:block">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-mep-purple text-mep-yellow">
+                  <tr>
+                    <th className="px-3 py-2">Militante</th>
+                    <th className="px-3 py-2">Código</th>
+                    <th className="px-3 py-2">Estado</th>
+                    <th className="px-3 py-2">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {todos.map((m) => (
+                    <tr key={m.id} className="border-t border-gray-100">
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{m.nombres} {m.apellidos}</div>
+                        <div className="text-xs text-gray-500">{estadoDe(m.estado)} / {municipioDe(m.municipio)}</div>
+                      </td>
+                      <td className="px-3 py-2 font-mono text-xs">{m.codigo || "—"}</td>
+                      <td className="px-3 py-2">{badge(m.estado_registro)}</td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-1">
+                          {m.estado_registro === "bloqueado" ? (
+                            <button onClick={() => desbloquear(m.id)} className="rounded bg-green-600 px-3 py-1.5 text-xs text-white hover:bg-green-700">Desbloquear</button>
+                          ) : (
+                            <button onClick={() => bloquear(m.id)} className="rounded bg-gray-600 px-3 py-1.5 text-xs text-white hover:bg-gray-700">Bloquear</button>
+                          )}
+                          {m.estado_registro === "aprobado" && !m.carnet_pdf && (
+                            <button onClick={() => generarCarnet(m)} disabled={procesando === m.id} className="rounded bg-mep-purple px-3 py-1.5 text-xs text-mep-yellow hover:bg-mep-purple-dark disabled:opacity-60">
+                              {procesando === m.id ? "Generando…" : "Generar carnet"}
+                            </button>
+                          )}
+                          {m.estado_registro === "aprobado" && m.carnet_pdf && (
+                            <button onClick={() => reimprimirCarnet(m.id)} className="rounded bg-mep-purple px-3 py-1.5 text-xs text-mep-yellow hover:bg-mep-purple-dark">Reimprimir carnet</button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Móvil: tarjetas */}
+            <div className="space-y-3 md:hidden">
+              {todos.length === 0 && <p className="text-gray-500">No hay militantes registrados.</p>}
+              {todos.map((m) => (
+                <div key={m.id} className="rounded-xl border border-gray-200 bg-white p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-gray-800">{m.nombres} {m.apellidos}</div>
+                      <div className="truncate text-xs text-gray-500">{estadoDe(m.estado)} / {municipioDe(m.municipio)}</div>
+                      <div className="mt-0.5 font-mono text-xs text-gray-600">Código: {m.codigo || "—"}</div>
+                    </div>
+                    {badge(m.estado_registro)}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {m.estado_registro === "bloqueado" ? (
+                      <button onClick={() => desbloquear(m.id)} className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700">Desbloquear</button>
+                    ) : (
+                      <button onClick={() => bloquear(m.id)} className="rounded-lg bg-gray-600 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700">Bloquear</button>
+                    )}
+                    {m.estado_registro === "aprobado" && !m.carnet_pdf && (
+                      <button onClick={() => generarCarnet(m)} disabled={procesando === m.id} className="rounded-lg bg-mep-purple px-3 py-2 text-sm font-medium text-mep-yellow hover:bg-mep-purple-dark disabled:opacity-60">
+                        {procesando === m.id ? "Generando…" : "Generar carnet"}
+                      </button>
+                    )}
+                    {m.estado_registro === "aprobado" && m.carnet_pdf && (
+                      <button onClick={() => reimprimirCarnet(m.id)} className="rounded-lg bg-mep-purple px-3 py-2 text-sm font-medium text-mep-yellow hover:bg-mep-purple-dark">Reimprimir carnet</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {/* ESTRUCTURA (aprobaciones CPR/CPM) */}
@@ -405,13 +440,13 @@ export default function Admin() {
                   <div className="flex gap-2">
                     {r.estado_registro === "pendiente" ? (
                       <>
-                        <button onClick={() => aprobarEstructura(r)} disabled={expirado} className="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">Aprobar</button>
-                        <button onClick={() => rechazarEstructura(r)} className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700">Rechazar</button>
+                        <button onClick={() => aprobarEstructura(r)} disabled={expirado} className="rounded-lg bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50">Aprobar</button>
+                        <button onClick={() => rechazarEstructura(r)} className="rounded-lg bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700">Rechazar</button>
                       </>
                     ) : (
-                      <button onClick={() => eliminarEstructura(r)} className="rounded-lg bg-gray-600 px-3 py-1.5 text-sm text-white hover:bg-gray-700">Eliminar</button>
+                      <button onClick={() => eliminarEstructura(r)} className="rounded-lg bg-gray-600 px-3 py-2 text-sm text-white hover:bg-gray-700">Eliminar</button>
                     )}
-                    <button onClick={() => setDetalleEstructura(r)} className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">Ver</button>
+                    <button onClick={() => setDetalleEstructura(r)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">Ver</button>
                   </div>
                 </div>
               );
@@ -474,8 +509,8 @@ export default function Admin() {
 
         {/* Modal detalle de cargo de estructura */}
         {detalleEstructura && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setDetalleEstructura(null)}>
-            <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={() => setDetalleEstructura(null)}>
+            <div className="relative w-full max-h-[92dvh] max-w-md overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:pb-6" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setDetalleEstructura(null)}
                 className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200"
@@ -502,11 +537,11 @@ export default function Admin() {
               <div className="mt-4 flex justify-end gap-2">
                 {detalleEstructura.estado_registro === "pendiente" ? (
                   <>
-                    <button onClick={() => { rechazarEstructura(detalleEstructura); setDetalleEstructura(null); }} className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700">Rechazar</button>
-                    <button onClick={() => { aprobarEstructura(detalleEstructura); setDetalleEstructura(null); }} disabled={esExpirado(detalleEstructura.fecha_pendiente || detalleEstructura.created)} className="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700 disabled:opacity-50">Aprobar</button>
+                    <button onClick={() => { rechazarEstructura(detalleEstructura); setDetalleEstructura(null); }} className="rounded-lg bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700">Rechazar</button>
+                    <button onClick={() => { aprobarEstructura(detalleEstructura); setDetalleEstructura(null); }} disabled={esExpirado(detalleEstructura.fecha_pendiente || detalleEstructura.created)} className="rounded-lg bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50">Aprobar</button>
                   </>
                 ) : (
-                  <button onClick={() => setDetalleEstructura(null)} className="rounded-lg bg-mep-purple px-3 py-1.5 text-sm text-mep-yellow hover:bg-mep-purple-dark">Cerrar</button>
+                  <button onClick={() => setDetalleEstructura(null)} className="rounded-lg bg-mep-purple px-3 py-2 text-sm text-mep-yellow hover:bg-mep-purple-dark">Cerrar</button>
                 )}
               </div>
             </div>
