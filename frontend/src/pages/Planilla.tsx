@@ -33,8 +33,8 @@ export default function Planilla() {
 
   if (guardado) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-8">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow">
+      <div className="flex min-h-dvh items-center justify-center bg-gray-50 p-4 py-8 sm:p-8">
+        <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow sm:p-8">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-mep-purple text-lg font-black text-mep-yellow">
             ✓
           </div>
@@ -53,9 +53,9 @@ export default function Planilla() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
+    <div className="min-h-dvh bg-gray-50 pb-safe">
       <Header />
-      <div className="py-8">
+      <div className="px-4 py-6 sm:py-8">
         <PlanillaForm mode="self" onSubmit={onSubmit} />
       </div>
     </div>
