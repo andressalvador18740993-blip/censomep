@@ -4,11 +4,24 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(
+      new Date().toISOString().slice(0, 10).replace(/-/g, ".") + "." + Date.now().toString().slice(-4)
+    )
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: false, // lo registramos manualmente en src/pwa.ts
       includeAssets: ["favicon.svg"],
+      workbox: {
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
+        navigateFallback: "index.html",
+        navigateFallbackDenylist: [/^\/api\//]
+      },
       manifest: {
         name: "Militante MEP",
         short_name: "Militante MEP",
