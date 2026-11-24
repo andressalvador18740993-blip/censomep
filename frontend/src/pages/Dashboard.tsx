@@ -239,7 +239,11 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="p-3 sm:p-4">
-                  <MapaVenezuela counts={countsPorNombre} onSelect={seleccionarEstadoPorNombre} />
+                  <MapaVenezuela
+                    counts={countsPorNombre}
+                    onSelect={seleccionarEstadoPorNombre}
+                    selectedName={selEstado ? nombreEstado(selEstado) : undefined}
+                  />
                 </div>
               </Card>
             )}
