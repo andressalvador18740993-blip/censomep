@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { useEffect, type ButtonHTMLAttributes, type ReactNode } from "react";
 
 /* ==========================================================================
    Iconos: SVG en línea (sin librerías externas) para mantener la app liviana.
@@ -308,7 +308,7 @@ export function IconButton({
       {...rest}
       aria-label={label}
       title={label}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-current transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-mep-purple/20 ${className}`}
+      className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-current transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-mep-purple/20 ${className}`}
     >
       <Icon name={icon} className="h-5 w-5" />
     </button>
@@ -497,16 +497,31 @@ export function Modal({
   children: ReactNode;
   className?: string;
 }) {
+  // Cerrar con Escape y bloquear el scroll del fondo mientras está abierto.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-mep-purple-deep/50 p-4 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-mep-purple-deep/50 p-0 backdrop-blur-sm animate-fade-in sm:items-center sm:p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className={`relative w-full rounded-2xl bg-white p-6 shadow-lift animate-scale-in ${className}`}
+        className={`relative w-full max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-lift animate-scale-in sm:rounded-2xl sm:pb-6 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         <IconButton
