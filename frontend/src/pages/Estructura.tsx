@@ -323,7 +323,7 @@ export default function EstructuraPage() {
   const totalPendientes = records.filter((r) => r.estado_registro === "pendiente").length;
 
   return (
-    <div className="min-h-screen pb-12">
+    <div className="min-h-dvh pb-12">
       <Header />
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <PageTitle
@@ -353,7 +353,7 @@ export default function EstructuraPage() {
         )}
 
         {/* Resumen */}
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
           <Resumen label="Cargos CPR" value={totalCPR} icon="shield" />
           <Resumen label="Cargos CPM" value={totalCPM} icon="users" />
           <Resumen label="Pendientes" value={totalPendientes} icon="clock" />
@@ -766,69 +766,113 @@ function TablaCargos({
     );
   }
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-mep-purple text-mep-yellow">
-          <tr>
-            <th className="th">Cargo</th>
-            <th className="th">Responsable</th>
-            <th className="th">Contacto</th>
-            <th className="th">Ámbito</th>
-            <th className="th">Estado</th>
-            <th className="th text-right">Acciones</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {items.map((r) => (
-            <tr key={r.id} className="transition hover:bg-mep-purple/[0.03]">
-              <td className="td font-semibold text-gray-800">{r.cargo}</td>
-              <td className="td">
-                <div className="flex items-center gap-2.5">
-                  <Avatar nombre={`${r.nombres} ${r.apellidos}`} size="sm" />
-                  <div>
-                    <div className="font-medium text-gray-800">
-                      {r.nombres} {r.apellidos}
-                    </div>
-                    {r.cedula && <div className="text-xs text-gray-400">C.I. {r.cedula}</div>}
-                  </div>
-                </div>
-              </td>
-              <td className="td text-gray-600">
-                {r.telefono && <div>{r.telefono}</div>}
-                {r.email && <div className="text-xs text-gray-400">{r.email}</div>}
-              </td>
-              <td className="td text-gray-600">
-                {r.nivel === "CPR" ? nombreEstado(r.estado) : nombreMunicipio(r.municipio || "")}
-              </td>
-              <td className="td">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <EstadoBadge r={r} />
-                  {r.activo === false && <Badge tone="gray">Inactivo</Badge>}
-                </div>
-              </td>
-              <td className="td">
-                {puedeEditar(r) ? (
-                  <div className="flex justify-end gap-1.5">
-                    <Button variant="ghost" size="sm" onClick={() => onEditar(r)}>
-                      Editar
-                    </Button>
-                    <button
-                      onClick={() => onEliminar(r)}
-                      title="Eliminar"
-                      aria-label="Eliminar"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
-                    >
-                      <Icon name="x" className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <span className="text-xs text-gray-300">—</span>
-                )}
-              </td>
+    <>
+      {/* Escritorio / tablet: tabla */}
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-mep-purple text-mep-yellow">
+            <tr>
+              <th className="th">Cargo</th>
+              <th className="th">Responsable</th>
+              <th className="th">Contacto</th>
+              <th className="th">Ámbito</th>
+              <th className="th">Estado</th>
+              <th className="th text-right">Acciones</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {items.map((r) => (
+              <tr key={r.id} className="transition hover:bg-mep-purple/[0.03]">
+                <td className="td font-semibold text-gray-800">{r.cargo}</td>
+                <td className="td">
+                  <div className="flex items-center gap-2.5">
+                    <Avatar nombre={`${r.nombres} ${r.apellidos}`} size="sm" />
+                    <div>
+                      <div className="font-medium text-gray-800">
+                        {r.nombres} {r.apellidos}
+                      </div>
+                      {r.cedula && <div className="text-xs text-gray-400">C.I. {r.cedula}</div>}
+                    </div>
+                  </div>
+                </td>
+                <td className="td text-gray-600">
+                  {r.telefono && <div>{r.telefono}</div>}
+                  {r.email && <div className="text-xs text-gray-400">{r.email}</div>}
+                </td>
+                <td className="td text-gray-600">
+                  {r.nivel === "CPR" ? nombreEstado(r.estado) : nombreMunicipio(r.municipio || "")}
+                </td>
+                <td className="td">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <EstadoBadge r={r} />
+                    {r.activo === false && <Badge tone="gray">Inactivo</Badge>}
+                  </div>
+                </td>
+                <td className="td">
+                  {puedeEditar(r) ? (
+                    <div className="flex justify-end gap-1.5">
+                      <Button variant="ghost" size="sm" onClick={() => onEditar(r)}>
+                        Editar
+                      </Button>
+                      <button
+                        onClick={() => onEliminar(r)}
+                        title="Eliminar"
+                        aria-label="Eliminar"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"
+                      >
+                        <Icon name="x" className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-300">—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Móvil: tarjetas */}
+      <div className="space-y-3 p-4 md:hidden">
+        {items.map((r) => (
+          <div key={r.id} className="rounded-xl border border-gray-200 bg-white p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="font-semibold text-gray-800">{r.cargo}</div>
+                <div className="mt-0.5 text-xs text-gray-500">
+                  {r.nombres} {r.apellidos}
+                  {r.cedula ? ` · C.I. ${r.cedula}` : ""}
+                </div>
+              </div>
+              <EstadoBadge r={r} />
+            </div>
+            <div className="mt-1 text-xs text-gray-500">
+              {r.nivel === "CPR" ? nombreEstado(r.estado) : nombreMunicipio(r.municipio || "")}
+              {r.activo === false && " · Inactivo"}
+            </div>
+            {(r.telefono || r.email) && (
+              <div className="mt-1 text-xs text-gray-600">
+                {r.telefono && <div>{r.telefono}</div>}
+                {r.email && <div className="truncate">{r.email}</div>}
+              </div>
+            )}
+            {puedeEditar(r) && (
+              <div className="mt-3 flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => onEditar(r)}>
+                  Editar
+                </Button>
+                <button
+                  onClick={() => onEliminar(r)}
+                  className="inline-flex h-9 items-center justify-center rounded-lg bg-red-50 px-3 text-sm font-medium text-red-600 transition hover:bg-red-100"
+                >
+                  Eliminar
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
