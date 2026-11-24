@@ -64,9 +64,9 @@ export default function MiCarnet() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-dvh bg-gray-50">
       <Header />
-      <div className="mx-auto max-w-md p-6">
+      <div className="mx-auto max-w-md px-4 py-6 pb-safe sm:p-6">
         <h1 className="mb-4 text-xl font-bold text-mep-purple">Mi carnet</h1>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow">
@@ -117,7 +117,7 @@ export default function MiCarnet() {
               <iframe
                 src={carnetUrl}
                 title="Carnet"
-                className="mb-3 h-96 w-full rounded border border-gray-200 bg-white"
+                className="mb-3 h-[65dvh] w-full rounded border border-gray-200 bg-white sm:h-96"
               />
               <button
                 onClick={descargarCarnet}
