@@ -62,8 +62,8 @@ export default function Conexiones() {
   return (
     <div>
       <Header />
-      <div className="mx-auto max-w-6xl p-6">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="mx-auto max-w-6xl px-4 py-6 pb-safe sm:p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-xl font-bold text-mep-purple">Monitor de conexiones</h1>
           <div className="flex gap-4 text-sm">
             <span className="rounded bg-mep-purple/10 px-3 py-1 text-mep-purple">
@@ -80,39 +80,63 @@ export default function Conexiones() {
         ) : items.length === 0 ? (
           <p className="text-gray-500">Aún no hay conexiones registradas.</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-mep-purple text-mep-yellow">
-                <tr>
-                  <th className="px-3 py-2">Fecha / hora</th>
-                  <th className="px-3 py-2">Usuario</th>
-                  <th className="px-3 py-2">Rol</th>
-                  <th className="px-3 py-2">Estado</th>
-                  <th className="px-3 py-2">Municipio</th>
-                  <th className="px-3 py-2">Dispositivo</th>
-                  <th className="px-3 py-2">Evento</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((c) => (
-                  <tr key={c.id} className="border-t border-gray-100">
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      {new Date(c.created).toLocaleString("es-VE")}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="font-medium">{c.nombre}</div>
-                      <div className="text-xs text-gray-500">{c.email}</div>
-                    </td>
-                    <td className="px-3 py-2 capitalize">{c.rol}</td>
-                    <td className="px-3 py-2">{c.estado || "—"}</td>
-                    <td className="px-3 py-2">{c.municipio || "—"}</td>
-                    <td className="px-3 py-2">{c.dispositivo || "—"}</td>
-                    <td className="px-3 py-2">{badge(c.evento)}</td>
+          <>
+            <div className="hidden overflow-x-auto rounded-xl border border-gray-200 md:block">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-mep-purple text-mep-yellow">
+                  <tr>
+                    <th className="px-3 py-2">Fecha / hora</th>
+                    <th className="px-3 py-2">Usuario</th>
+                    <th className="px-3 py-2">Rol</th>
+                    <th className="px-3 py-2">Estado</th>
+                    <th className="px-3 py-2">Municipio</th>
+                    <th className="px-3 py-2">Dispositivo</th>
+                    <th className="px-3 py-2">Evento</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {items.map((c) => (
+                    <tr key={c.id} className="border-t border-gray-100">
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {new Date(c.created).toLocaleString("es-VE")}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{c.nombre}</div>
+                        <div className="text-xs text-gray-500">{c.email}</div>
+                      </td>
+                      <td className="px-3 py-2 capitalize">{c.rol}</td>
+                      <td className="px-3 py-2">{c.estado || "—"}</td>
+                      <td className="px-3 py-2">{c.municipio || "—"}</td>
+                      <td className="px-3 py-2">{c.dispositivo || "—"}</td>
+                      <td className="px-3 py-2">{badge(c.evento)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Móvil: tarjetas */}
+            <div className="space-y-3 md:hidden">
+              {items.map((c) => (
+                <div key={c.id} className="rounded-xl border border-gray-200 bg-white p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-gray-800">{c.nombre}</div>
+                      <div className="truncate text-xs text-gray-500">{c.email}</div>
+                    </div>
+                    {badge(c.evento)}
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">{new Date(c.created).toLocaleString("es-VE")}</div>
+                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-600">
+                    <span className="capitalize">Rol: {c.rol}</span>
+                    <span>Estado: {c.estado || "—"}</span>
+                    <span>Municipio: {c.municipio || "—"}</span>
+                    <span>Equipo: {c.dispositivo || "—"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
