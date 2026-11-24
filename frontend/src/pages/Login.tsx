@@ -173,6 +173,7 @@ export default function Login() {
 
           <p className="mt-6 text-center text-xs text-gray-400">
             Movimiento Electoral del Pueblo · Secretaría de Organización
+            <span className="mt-1 block text-[0.68rem] text-gray-300">Versión {__APP_VERSION__}</span>
           </p>
         </div>
       </div>
