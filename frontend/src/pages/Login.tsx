@@ -26,9 +26,9 @@ export default function Login() {
   }
 
   return (
-    <div className="grid min-h-screen bg-mep-purple-deep lg:grid-cols-[1.05fr_1fr]">
+    <div className="grid min-h-dvh bg-mep-purple-deep md:grid-cols-[1.05fr_1fr]">
       {/* Panel de marca */}
-      <div className="relative hidden overflow-hidden bg-brand p-10 text-white lg:flex lg:flex-col lg:justify-between">
+      <div className="relative hidden overflow-hidden bg-brand p-10 text-white md:flex md:flex-col md:justify-between">
         <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-mep-yellow/10 blur-2xl" />
         <div className="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
         <div className="relative">
@@ -73,7 +73,7 @@ export default function Login() {
       {/* Formulario */}
       <div className="flex items-center justify-center bg-[#F5F3F7] p-6 sm:p-10">
         <div className="w-full max-w-sm animate-slide-up">
-          <div className="mb-8 text-center lg:hidden">
+          <div className="mb-8 text-center md:hidden">
             <span className="mx-auto mb-4 inline-flex items-center rounded-2xl bg-white px-4 py-2 shadow-soft">
               <img src="/logo.svg" alt="MEP" className="h-8 w-auto" />
             </span>
