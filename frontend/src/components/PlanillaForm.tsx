@@ -187,7 +187,7 @@ export default function PlanillaForm({ mode, onSubmit }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-2xl rounded-2xl bg-white p-6 shadow">
+    <div className="mx-auto max-w-2xl rounded-2xl bg-white p-4 shadow sm:p-6">
       <div className="mb-4 border-b border-mep-purple pb-3">
         <h1 className="text-xl font-bold text-mep-purple">
           {esStaff ? "Registrar militante" : "Registro de Militante"}
