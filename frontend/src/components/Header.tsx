@@ -59,7 +59,7 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-brand text-white shadow-soft no-print">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-brand pt-safe text-white shadow-soft no-print">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
         {/* Marca */}
         <button onClick={() => navigate(home)} className="group flex items-center gap-2.5" title="Inicio">
@@ -73,7 +73,7 @@ export default function Header() {
         </button>
 
         {/* Navegación */}
-        <nav className="order-3 flex w-full items-center gap-1 overflow-x-auto pb-0.5 sm:order-none sm:w-auto sm:pb-0">
+        <nav className="no-scrollbar order-3 flex w-full items-center gap-1 overflow-x-auto pb-0.5 sm:order-none sm:w-auto sm:pb-0">
           {navItems.map((item) => {
             const active = location.pathname === item.path;
             return (
