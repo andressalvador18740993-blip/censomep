@@ -134,7 +134,7 @@ export default function MapaVenezuela({ counts, onSelect, selectedName }: Props)
     <svg
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       preserveAspectRatio="xMidYMid meet"
-      className="h-[340px] w-full sm:h-[460px]"
+      className="h-[300px] w-full sm:h-[420px] md:h-[460px]"
       role="img"
       aria-label="Mapa de Venezuela"
     >
@@ -187,6 +187,7 @@ export default function MapaVenezuela({ counts, onSelect, selectedName }: Props)
               stroke="#ffffff"
               strokeWidth={3}
               paintOrder="stroke"
+              className="hidden sm:block"
               style={{ letterSpacing: "0.02em" }}
             >
               {nombre}
