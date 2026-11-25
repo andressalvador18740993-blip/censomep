@@ -5,7 +5,7 @@ Sistema de Censo, Re-censo y Carnetización de Militantes del Partido Movimiento
 | Dato | Valor |
 |---|---|
 | Plataforma | Aplicación Web Progresiva (PWA) |
-| URL | https://militante-mep.pages.dev |
+| URL | https://censomep.andresdig.org |
 | Backend | PocketBase (autohospedado) |
 | Colores institucionales | Morado #63008F · Amarillo #FFF200 |
 
