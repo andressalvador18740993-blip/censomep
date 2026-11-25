@@ -1,3 +1,12 @@
+# Cabeceras de seguridad globales
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'
+
 # El service worker y el HTML nunca deben quedar cacheados por el navegador/CDN,
 # para que los dispositivos con la PWA instalada reciban la versión nueva.
 /sw.js
