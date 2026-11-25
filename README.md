@@ -93,7 +93,7 @@ node scripts/bootstrap.mjs
 
 ## Despliegue
 
-1. **Frontend** → Cloudflare Pages (proyecto `militante-mep`). El CI de GitHub Actions hace build + deploy al hacer push a `main`. Requiere secretos: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `VITE_PB_URL`.
+1. **Frontend** → Cloudflare Pages (proyecto `censomep`, dominio `censomep.andresdig.org`). El CI de GitHub Actions hace build + deploy al hacer push a `main`. Requiere secretos: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `VITE_PB_URL`.
 2. **Backend** → PocketBase ya corre en InterServer detrás de Caddy.
 3. **Worker** → copiar `worker/` al VPS (`/opt/mep/worker`), crear `.env`, instalar con `npm install` y activar `systemd/worker.service`.
 
