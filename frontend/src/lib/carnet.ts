@@ -122,7 +122,7 @@ export async function generarCarnetPDF(datos: DatosCarnet): Promise<Blob> {
   rect(qrX - 6, qrY - 6, qrSize + 12, qrSize + 12, WHITE);
 
   try {
-    const url = `${typeof window !== "undefined" ? window.location.origin : "https://censo.andresdig.org"}/verificar/${codigo}`;
+    const url = `${typeof window !== "undefined" ? window.location.origin : "https://censomep.andresdig.org"}/verificar/${codigo}`;
     const qr = crearQR(0, "M");
     qr.addData(url);
     qr.make();
